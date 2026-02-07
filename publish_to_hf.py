@@ -9,7 +9,8 @@ def publish(token=None, username="omesbah"):
         login(token=token)
     
     info = api.whoami()
-    print(f"Authenticated as {info['name']}")
+    username = info['name']
+    print(f"Authenticated as {username}")
     
     # 2. Create Model Repository (for code and dataset)
     model_id = f"{username}/topo-align"
@@ -22,7 +23,8 @@ def publish(token=None, username="omesbah"):
     # 3. Create Space (for interactive demo)
     space_id = f"{username}/topo-align-demo"
     try:
-        api.create_repo(repo_id=space_id, repo_type="space", space_sdk="streamlit", exist_ok=True)
+        # Try without space_sdk first to see if it's the culprit
+        api.create_repo(repo_id=space_id, repo_type="space", exist_ok=True)
         print(f"Space {space_id} created/verified.")
     except Exception as e:
         print(f"Error creating space: {e}")
