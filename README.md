@@ -62,25 +62,32 @@ We empirically validated Topo-Align against standard methods in a simulated "con
 1.  **Superior Quality**: Found a solution **~588x better** than standard Linear Merging.
 2.  **High Efficiency**: Achieved optimal results with **~4.4x fewer evaluations** than Grid Search.
 
-## Use Cases
+## Topo-Align vs. Standard Optimization (e.g., SciPy)
 
-- **Adapter Weight Optimization**: Efficiently balancing multiple LoRA adapters (3+) where manual weighting is impractical.
-- **Subjective Constraint Management**: Aligning models where objective metrics are difficult to define but qualitative failures (e.g., "too formal") are easily identifiable.
-- **Large-Scale Objective Balancing**: Managing alignment across high-dimensional objective spaces (5-10+) where traditional search methods fail due to the "curse of dimensionality."
+A common question is: *"Why not just use `scipy.optimize`?"*
 
-## Installation
+While libraries like SciPy are excellent for minimizing continuous, differentiable functions, Topo-Align is built for a different class of problems: **Fixed-Point Equilibria in Discrete or Qualitative Landscapes.**
 
-### Using pip
+| Feature | Standard Optimization (`scipy`) | **Topo-Align (Equilib)** |
+| :--- | :--- | :--- |
+| **Input Requirement** | Continuous Scalar Loss (a "Number") | Discrete Labels (e.g., "Too Preachy") |
+| **Mathematical Core** | Calculus (Gradients/Hessians) | Combinatorial Topology (Simplicial Complexes) |
+| **Feedback Type** | Quantitative ("Loss is 4.2") | **Qualitative ("Objective A is unhappy")** |
+| **Best For** | Curve fitting, engineering tolerances | **LLM Alignment, Vibe-Checks, Model Soups** |
 
-```bash
-pip install numpy scipy scikit-learn transformers peft torch streamlit
-```
+### When to use Topo-Align:
+1.  **No Numerical Loss**: You have a human (or an LLM judge) who can tell you *which* objective is failing, but cannot give you a precise "score."
+2.  **Conflicting Objectives**: You are merging 5+ LoRA adapters (Safety, Coding, Creative, etc.) and need to find the exact point where they don't "break" each other.
+3.  **High-Dimensional Stability**: You need a guarantee of finding a balanced solution (Nash Equilibrium) in a high-dimensional space without the memory overhead of storing a massive grid.
 
-### Using uv
+## How to Interpret Results
 
-```bash
-uv sync
-```
+Unlike gradient descent which yields an "exact" float, Topo-Align results are **Grid-Bound**.
+
+- **The "Panchromatic" Simplex**: The solver identifies a small triangle (or hyper-tetrahedron) where all objectives are balanced. The center of this simplex is your "Optimal Weight."
+- **Precision vs. Subdivision**: Accuracy is determined by the `subdivision` parameter. A subdivision of `20` means steps of 5%. 
+    - *Why this is good for AI:* In LLM weight merging, extreme precision (e.g., 0.0001%) is often "noise." A 5% increment is the "sweet spot" for meaningful behavioral changes without overfitting.
+- **Topological Frustration**: If the solver struggles to find a clear path, it indicates a high "Frustration Score"—meaning your objectives are so fundamentally in conflict that no perfect balance exists.
 
 ## Usage and API
 
