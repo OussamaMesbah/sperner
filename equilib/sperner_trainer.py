@@ -9,6 +9,43 @@ from .ndim_solver import NDimEquilibSolver
 logger = logging.getLogger(__name__)
 
 
+def _merge_adapter_weights(model, adapter_names: List[str],
+                           weights: np.ndarray):
+    """Blend multiple PEFT adapters by interpolating their parameters.
+
+    Requires ``peft`` and ``transformers`` to be installed.  Operates
+    in-place on the model and returns it.
+    """
+    try:
+        from peft import set_peft_model_state_dict  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "Real PEFT mode requires `pip install peft transformers`."
+        ) from exc
+
+    # Collect per-adapter state dicts
+    adapter_states = []
+    for name in adapter_names:
+        model.set_adapter(name)
+        adapter_states.append({
+            k: v.clone()
+            for k, v in model.state_dict().items() if "lora_" in k
+        })
+
+    # Interpolate parameters
+    blended: Dict[str, torch.Tensor] = {}
+    for key in adapter_states[0]:
+        blended[key] = sum(w * sd[key]
+                           for w, sd in zip(weights.tolist(), adapter_states))
+
+    # Load blended weights into the first adapter
+    model.set_adapter(adapter_names[0])
+    current = model.state_dict()
+    current.update(blended)
+    model.load_state_dict(current, strict=False)
+    return model
+
+
 class BaseObjective:
     """Standard interface for user objectives.
 
@@ -43,7 +80,7 @@ class SpernerTrainer:
         self.model = base_model
         self.adapter_names = adapters
         self.objectives = objectives
-        self.n_objs = len(adapters) if not mock else 3
+        self.n_objs = len(adapters)
         self.mock = mock
 
         # Caching to avoid redundant LLM calls for the same weight mix
@@ -53,7 +90,8 @@ class SpernerTrainer:
         """Evaluate all objectives for a given adapter weight mix.
 
         In mock mode, returns losses from a synthetic non-convex landscape.
-        In real mode, runs inference through the model and collects objective scores.
+        In real mode, blends adapter parameters according to *weights* and
+        evaluates every objective on the resulting model.
         """
         w_tuple = tuple(np.round(weights, 4))
         if w_tuple in self._eval_cache:
@@ -68,10 +106,9 @@ class SpernerTrainer:
             self._eval_cache[w_tuple] = losses
             return losses
 
-        losses = []
-        for obj_func in self.objectives:
-            losses.append(obj_func(self.model))
-
+        # Real PEFT mode: blend adapter weights and evaluate
+        _merge_adapter_weights(self.model, self.adapter_names, weights)
+        losses = [float(obj_func(self.model)) for obj_func in self.objectives]
         self._eval_cache[w_tuple] = losses
         return losses
 

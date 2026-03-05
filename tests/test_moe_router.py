@@ -26,9 +26,11 @@ def test_forward_route_deterministic_with_seed():
     router = TopologicalMoERouter(num_experts=3, latent_dim=32)
     torch.manual_seed(42)
     hidden = torch.randn(1, 1, 32)
+    torch.manual_seed(99)
     w1 = router.forward_route(hidden, precision=10)
+    torch.manual_seed(99)
     w2 = router.forward_route(hidden, precision=10)
-    # With the same input and model weights, output should be identical
+    # With the same input, model weights, and RNG state, output should be identical
     assert torch.allclose(w1, w2)
 
 

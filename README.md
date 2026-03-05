@@ -1,103 +1,175 @@
-# Equilib: PyTorch-Native Topological Manifold Alignment
+# Equilib
 
-**Equilib** is a high-performance engine for finding the "Sweet Spot" in multi-objective AI systems—such as balancing Code Quality vs. Safety in Model Merging, or Precision vs. Recall in RAG.
+**Find the optimal balance between competing objectives — without gradients, without grid search, with a mathematical guarantee.**
 
-It uses **Topological Alignment** (based on Sperner's Lemma) to navigate complex trade-offs without needing gradients, making it ideal for metrics like "vibe checks," LLM-as-a-Judge, or discrete benchmarks.
-
-## 🚀 Why Equilib?
-
-### The Problem: The "Alignment Tax"
-In modern LLMs, optimizing for one task (e.g., Creative Writing) often degrades another (e.g., Factuality). Classical optimization fails here because:
-*   **Gradient Descent** requires differentiable functions (most LLM benchmarks are not).
-*   **Grid Search** is too slow (exponentially grows with the number of objectives).
-*   **Bayesian Optimization** becomes computationally expensive as you add more objectives.
-
-### The Solution: Topological Search
-Equilib treats the balance of $N$ objectives as a coordinate in a simplex. Instead of "guessing" weights, it performs a **Sperner Walk**—a combinatorial search that is guaranteed to find the equilibrium point where all objectives are balanced.
-
-| Feature | Grid Search | Bayesian Opt | **Equilib** |
-| :--- | :--- | :--- | :--- |
-| **Speed** | Slow ($O(X^N)$) | Medium | **Fast ($O(N)$)** |
-| **Gradients** | Not needed | Not needed | **Not needed** |
-| **Scalability** | Poor | Average | **High (10+ objectives)** |
-| **Guarantee** | No | Probabilistic | **Mathematical (Sperner's Lemma)** |
+[![Tests](https://github.com/omesbah/equilib/actions/workflows/test.yml/badge.svg)](https://github.com/omesbah/equilib/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
-## 📦 Installation
+## What does Equilib do?
+
+You have an LLM (or any system) with **N competing objectives** — Safety vs. Helpfulness vs. Creativity, or Precision vs. Recall vs. Latency. You need to find the weight mix where everything is "good enough" simultaneously.
+
+**Equilib solves this in O(N) evaluations** using a topological fixed-point algorithm (Sperner's Lemma), instead of the O(X^N) brute-force grid search.
+
+```python
+# Find the optimal balance between 3 objectives in ~50 evaluations
+from equilib import solve_equilibrium
+
+weights = solve_equilibrium(
+    n_objs=3,
+    oracle=lambda w: my_benchmark(w),  # returns index of weakest objective
+)
+# weights ≈ [0.35, 0.40, 0.25] — the Nash equilibrium
+```
+
+### When to use Equilib
+
+| Use case                        | Example                                            |
+| :------------------------------ | :------------------------------------------------- |
+| **LLM alignment**               | Balance safety, helpfulness, and creativity        |
+| **Model merging**               | Find optimal LoRA adapter mix weights              |
+| **MoE routing**                 | Allocate experts without softmax collapse          |
+| **Benchmark tuning**            | Hit multiple non-differentiable metrics at once    |
+| **Any multi-objective problem** | Where you can answer "which objective is weakest?" |
+
+The only requirement: you need an oracle that, given a weight vector, tells you **which objective is currently the most underserved**. That's it — no gradients, no loss surfaces, no hyperparameter sweeps.
+
+---
+
+## How it works (30-second version)
+
+1. Equilib places your N objectives on an **N-simplex** (triangle for 3, tetrahedron for 4, etc.)
+2. It subdivides the simplex into a fine grid and labels each point by asking your oracle: "at these weights, which objective is weakest?"
+3. It performs a **Sperner walk** — a combinatorial path through the grid that is *mathematically guaranteed* to find a cell where all labels meet (a "panchromatic simplex")
+4. The centroid of that cell is your equilibrium — the weight mix where no single objective dominates
+
+This works because of **Sperner's Lemma** (1928): any valid labeling of a triangulated simplex *must* contain at least one fully-labeled cell. Equilib exploits this to find it in linear time.
+
+---
+
+## Installation
 
 ```bash
 pip install .
-# Or for development
-pip install -e ".[dev]"
+
+# With LoRA/PEFT support
+pip install ".[peft]"
+
+# With Streamlit human-in-the-loop UI
+pip install ".[ui]"
+
+# Everything
+pip install ".[all]"
 ```
 
-## 🛠 Usage Workflows
+## Quick start
 
-Equilib supports three primary workflows: **Automated**, **Manual (Human-in-the-Loop)**, and **CLI-based**.
-
-### 1. Automated Alignment (Code)
-Use this when you have programmatic evaluators (e.g., a benchmark suite or an LLM-as-a-Judge).
+### Automated (programmatic oracle)
 
 ```python
+import numpy as np
 from equilib import NDimEquilibSolver
+import torch
 
-# 1. Define your "Judge" (Oracle)
-# It returns the INDEX of the objective that needs more weight.
-def my_judge(weights):
-    # weights = [0.2, 0.5, 0.3] for 3 objectives
-    scores = evaluate_model(weights) # e.g., {"safety": 0.8, "coding": 0.4, "chat": 0.6}
-    # Coding (index 1) has the lowest score
-    return 1 
+solver = NDimEquilibSolver(n_objs=4, subdivision=50)
 
-# 2. Solve for the Equilibrium
-solver = NDimEquilibSolver(n_objs=3)
-optimal_weights = solver.solve(oracle_fn=my_judge)
-print(f"Optimal Balance: {optimal_weights}")
+def judge(weights_batch: torch.Tensor) -> torch.Tensor:
+    """Return index of the weakest objective for each weight vector."""
+    labels = []
+    for w in weights_batch:
+        scores = run_my_benchmarks(w.numpy())  # your eval function
+        labels.append(int(np.argmin(scores)))
+    return torch.tensor(labels)
+
+optimal = solver.solve(oracle_fn=judge)
+print(f"Optimal weights: {optimal[0]}")
 ```
 
-### 2. Manual "Vibe Checks" (Human-in-the-Loop)
-When metrics are purely qualitative (e.g., "Is this response too robotic?"), use the built-in Streamlit UI to steer the model manually.
+### Human-in-the-loop (Streamlit UI)
 
-#### **How it works:**
-1.  **Generation**: Equilib proposes a set of weights and generates a response from your model.
-2.  **Verdict**: You (the human) look at the response and click a button for the objective that is **currently failing** (e.g., "Needs more Creativity").
-3.  **Pivot**: Equilib uses your feedback to mathematically pivot the model's latent manifold toward the next test point.
-4.  **Convergence**: In a few steps, you reach the "Goldilocks Zone" where all objectives are satisfied.
+For qualitative "vibe check" alignment — the solver proposes weights, your local LLM generates a response, and you click which objective needs more work:
 
-#### **How to run it:**
 ```bash
-# 1. Ensure you have a local LLM server running (e.g., LM Studio, Ollama)
-# 2. Run the UI
 streamlit run app.py
 ```
-*Also available as a demo on **Hugging Face Spaces**.*
 
-### 3. Model Merging (CLI)
-Balance LoRA adapters or model weights directly from the terminal.
+The UI supports 2–10 configurable objectives and works with any OpenAI-compatible API (LM Studio, Ollama, vLLM).
 
-```bash
-python tools/equilib_merge.py --base meta-llama/Llama-3-8B --adapters coding-lora,safety-lora --precision 100
+### LoRA adapter merging
+
+```python
+from equilib import SpernerTrainer
+
+trainer = SpernerTrainer(
+    base_model=my_peft_model,
+    adapters=["safety-lora", "code-lora", "chat-lora"],
+    objectives=[safety_score, code_score, chat_score],
+    mock=False,
+)
+optimal_mix = trainer.train(grid_size=50)
+```
+
+### MoE expert routing
+
+```python
+from equilib import TopologicalMoERouter
+
+router = TopologicalMoERouter(num_experts=8, latent_dim=4096)
+weights = router.forward_route(hidden_states, precision=20)
+# weights = [0.18, 0.12, 0.15, ...] — no routing collapse
 ```
 
 ---
 
-## 🧠 Core Features
+## Comparison
 
-*   **Topological MoE Routing**: Bypasses unstable softmax gating by finding the Nash Equilibrium of expert contributions per token.
-*   **Simplicial LoRA Fusion**: Resolves the "Alignment Tax" by calculating Pareto-optimal weights for merging $N$ specialized adapters.
-*   **PyTorch-Native**: Fully tensorized for CUDA-accelerated batch processing.
+|                                 | Grid Search        | Bayesian Opt  | **Equilib**      |
+| :------------------------------ | :----------------- | :------------ | :--------------- |
+| **Oracle calls**                | O(X^N) exponential | O(N²) typical | **O(N) linear**  |
+| **Needs gradients**             | No                 | No            | **No**           |
+| **Scales to 10+ objectives**    | No                 | Poorly        | **Yes**          |
+| **Convergence guarantee**       | Exhaustive only    | Probabilistic | **Mathematical** |
+| **Works with discrete metrics** | Yes                | Awkward       | **Native**       |
 
-## Architecture
+---
 
-Equilib operates on the principle that the optimal capability mix of an LLM lies at a fixed point within a simplicial complex (**Implicit Freudenthal Triangulation**). It navigates the manifold based on discrete "most dissatisfied objective" labels, ensuring convergence even in noisy, non-convex landscapes.
+## Project structure
+
+```
+equilib/
+  ndim_solver.py       # Core N-dimensional Sperner walk (PyTorch)
+  solver.py            # Legacy 2D solver
+  adaptive_solver.py   # Iterative zoom refinement
+  surrogate_solver.py  # KNN active-learning wrapper (fewer oracle calls)
+  sperner_trainer.py   # PEFT/LoRA adapter integration
+  moe_router.py        # Topological MoE routing
+  agentic_judge.py     # LLM-as-a-Judge orchestrator
+  human_ui.py          # Streamlit UI for manual alignment
+  analytics.py         # Frustration score & path analysis
+  plotting.py          # Simplex heatmap visualization
+```
+
+## Docs
+
+- [API Reference](docs/API_REFERENCE.md)
+- [Architecture & Theory](docs/ARCHITECTURE.md)
+- [Sperner's Lemma Theory](docs/THEORY.md)
+- [Model Card Integration](docs/MODEL_CARD_INTEGRATION.md)
 
 ## Citation
+
 ```bibtex
 @software{mesbah2026equilib,
   author = {Mesbah, Oussama},
-  title = {Equilib: High-Performance Topological Alignment},
+  title = {Equilib: Gradient-Free Multi-Objective Alignment via Sperner's Lemma},
   year = {2026},
   url = {https://github.com/omesbah/equilib}
 }
 ```
+
+## License
+
+MIT
