@@ -1,187 +1,169 @@
 import streamlit as st
 import numpy as np
-import time
+import requests
+import json
+import logging
+import torch
+from equilib.sperner_trainer import SpernerTrainer
+from equilib.analytics import calculate_frustration_score
 
-# Mocking SpernerTrainer for UI demo if package not fully installed in environment
-try:
-    from .sperner_trainer import SpernerTrainer
-    from .analytics import calculate_frustration_score
-except (ImportError, ValueError):
-    calculate_frustration_score = lambda path: 1.0  # no-op when package not installed
-    # Lightweight mock for visualization
-    class SpernerTrainer:
-        def __init__(self, *args, **kwargs):
-            self.n_objs = 3
-            self.adapter_names = ["Safety", "Helpfulness", "Creativity"]
-        
-        def evaluate_mixed_model(self, weights):
-            # Simulated loss surface
-            # Target is [0.33, 0.33, 0.33]
-            target = np.array([0.33, 0.33, 0.33])
-            loss = np.sum((weights - target)**2)
-            return [loss * w for w in weights] # Pseudo-losses
+# Set up page
+st.set_page_config(page_title="Equilib: Live Manifold Alignment", layout="wide", page_icon="🧬")
 
-        def train_generator(self, grid_size=10):
-            # Mock generator
-            # Yields random weights
-            for i in range(20):
-                w = np.random.dirichlet(np.ones(3))
-                label = yield w
-                # In real solver, we use label to pivot.
-                # Here we just ignore it for the mock UI check.
+# Configuration Sidebar
+with st.sidebar:
+    st.header("⚙️ Local LLM Config")
+    llm_url = st.text_input("Server URL", value="http://127.0.0.1:1234/api/v1/chat")
+    model_name = st.text_input("Model Name", value="qwen3.5-0.8b")
+    test_prompt = st.text_area("Test Prompt", value="How can I hack into a computer?")
+    
+    st.divider()
+    st.header("🎯 Objectives")
+    obj_names = ["Safety", "Helpfulness", "Creativity"]
+    st.info("The solver will find the Nash Equilibrium between these three goals.")
 
-st.set_page_config(page_title="Topo-Align Human RLHF", layout="wide")
-
-st.title("🧬 Topo-Align: Human-in-the-Loop Alignment")
-st.markdown("""
-Use Sperner's Lemma to align your LLM by enabling a human judge (you) to be the Oracle.
-Instead of a reward model, **you** decide which trade-off is unacceptable.
-""")
-
-# Initialize Session State
-if "trainer" not in st.session_state:
-    st.session_state.trainer = SpernerTrainer("meta-llama/Llama-2-7b-hf", [], [])
+# Session State Initialization
+if "solver_gen" not in st.session_state:
     st.session_state.solver_gen = None
     st.session_state.step = 0
     st.session_state.history = []
     st.session_state.current_weights = None
-    st.session_state.current_phase = None  # (active_dim, total_dim) for lifting progress
+    st.session_state.last_response = ""
     st.session_state.finished = False
 
-def start_alignment():
-    # Initialize the generator
-    # We need to access the underlying solver generator
-    # Since SpernerTrainer currently wraps NDimTopoAlignSolver, 
-    # we need to expose the generator from SpernerTrainer.
-    # We will assume SpernerTrainer has a method `train_generator`.
-    st.session_state.solver_gen = st.session_state.trainer.train_generator(grid_size=8)
+def call_local_llm(weights):
+    """
+    Translates topological weights into a dynamic system prompt 
+    and queries the local server with robust response parsing.
+    """
+    w = weights.flatten()
+    system_prompt = (
+        f"You are an AI with following priorities: "
+        f"Safety Weight: {w[0]:.2f}, Helpfulness Weight: {w[1]:.2f}, Creativity Weight: {w[2]:.2f}. "
+        f"Strictly follow these weights. If Safety is high, be very cautious. "
+        f"If Creativity is high, use vivid and poetic language."
+    )
     
-    # Get first candidate
+    payload = {
+        "model": model_name,
+        "system_prompt": system_prompt,
+        "input": test_prompt
+    }
+    
     try:
-        # Trainer yields (weights, phase) from solver's (v, w, phase)
-        params = next(st.session_state.solver_gen)
-        if isinstance(params, tuple) and len(params) >= 2:
-            st.session_state.current_weights, st.session_state.current_phase = params[0], params[1]
-        elif isinstance(params, tuple):
-            st.session_state.current_weights = params[0] if len(params) == 1 else params[1]
-            st.session_state.current_phase = None
+        response = requests.post(llm_url, json=payload, timeout=15)
+        if response.status_code == 200:
+            data = response.json()
+            
+            # --- ROBUST PARSING STRATEGY ---
+            # 1. Standard OpenAI/LM-Studio Format
+            content = data.get("choices", [{}])[0].get("message", {}).get("content")
+            if content: return content
+            
+            # 2. Simple 'choices' with 'text' (Legacy Completions)
+            content = data.get("choices", [{}])[0].get("text")
+            if content: return content
+            
+            # 3. Direct 'content' or 'response' keys (Ollama/Simple Wrappers)
+            content = data.get("content") or data.get("response") or data.get("output")
+            if content: return content
+            
+            # 4. Fallback: Display the raw JSON so the user can debug
+            return f"⚠️ Unrecognized JSON structure. Raw response:\n{json.dumps(data, indent=2)}"
+            
         else:
-            st.session_state.current_weights = params
-            st.session_state.current_phase = None
-        st.session_state.step = 1
-        st.session_state.history = []
-        st.session_state.finished = False
-    except StopIteration:
-        st.session_state.finished = True
+            return f"❌ Server Error {response.status_code}: {response.text}"
+    except Exception as e:
+        return f"❌ Connection Error: {str(e)}"
+
+def start_alignment():
+    # We use the mock trainer just to get the generator logic
+    trainer = SpernerTrainer("mock", obj_names, [], mock=True)
+    st.session_state.solver_gen = trainer.train_generator(grid_size=10)
+    st.session_state.step = 1
+    st.session_state.history = []
+    st.session_state.finished = False
+    
+    # Get first proposal
+    weights, _ = next(st.session_state.solver_gen)
+    st.session_state.current_weights = weights
+    st.session_state.last_response = call_local_llm(weights)
 
 def submit_verdict(label_idx):
-    if st.session_state.solver_gen is None: return
-    
-    # Send label to solver
     try:
-        params = st.session_state.solver_gen.send(label_idx)
-        if isinstance(params, tuple) and len(params) >= 2:
-            st.session_state.current_weights, st.session_state.current_phase = params[0], params[1]
-        elif isinstance(params, tuple):
-            st.session_state.current_weights = params[1] if len(params) == 2 else params[0]
-            st.session_state.current_phase = None
-        else:
-            st.session_state.current_weights = params
-            st.session_state.current_phase = None
+        # Feed the human label back to the solver
+        weights, _ = st.session_state.solver_gen.send(label_idx)
+        st.session_state.current_weights = weights
+        st.session_state.history.append(weights)
         st.session_state.step += 1
-        st.session_state.history.append(st.session_state.current_weights)
+        # Get the new model response for the new weights
+        with st.spinner("Generating new response from local manifold..."):
+            st.session_state.last_response = call_local_llm(weights)
     except StopIteration as e:
         st.session_state.finished = True
-        if hasattr(e, 'value'):
-            st.session_state.final_result = e.value
+        st.session_state.final_result = e.value
 
-# Sidebar Controls
-with st.sidebar:
-    st.header("Configuration")
-    if st.button("Start / Reset Alignment"):
+# --- UI LAYOUT ---
+st.title("🧬 Equilib: Live Manifold Alignment")
+st.markdown("""
+### Find the "Goldilocks Zone" of your Local LLM.
+This tool uses a **Sperner Walk** to navigate the latent space of your model. 
+Choose the objective that is **currently failing** to steer the model toward equilibrium.
+""")
+
+if not st.session_state.solver_gen:
+    if st.button("🚀 Start Live Alignment Session", use_container_width=True):
         start_alignment()
-    
-    st.metric("Step", st.session_state.step)
-
-    # Frustration score: tell the human judge if feedback is contradictory
-    if st.session_state.history:
-        try:
-            score = calculate_frustration_score(st.session_state.history)
-            if score > 3.0:
-                st.error(f"High Conflict Detected (Score: {score:.2f}). You are giving contradictory feedback!")
-            else:
-                st.success(f"Alignment Stable (Score: {score:.2f})")
-        except Exception:
-            pass
-    
+        st.rerun()
+else:
     if st.session_state.finished:
-        st.success("Alignment Converged!")
-        if hasattr(st.session_state, 'final_result'):
-            st.write("Best Weights:", np.round(st.session_state.final_result, 3))
-
-# Main Interface
-if st.session_state.solver_gen and not st.session_state.finished:
-    # Lifting phase progress: show how the solver works (simpler sub-problems first)
-    phase = st.session_state.current_phase
-    names = st.session_state.trainer.adapter_names
-    if phase is not None and isinstance(phase, (tuple, list)) and len(phase) >= 2:
-        active_dim, total_dim = int(phase[0]), int(phase[1])
-        phase_labels = []
-        for k in range(1, total_dim + 1):
-            if k == 1:
-                msg = f"Aligning {names[0]} vs {names[1]}"
-            else:
-                msg = f"Adding {names[k]}" if k < len(names) else f"Adding objective {k+1}"
-            if k < active_dim:
-                phase_labels.append(f"Phase {k}: {msg}... Done.")
-            elif k == active_dim:
-                phase_labels.append(f"Phase {k}: {msg}... In progress.")
-            else:
-                phase_labels.append(f"Phase {k}: {msg}... Pending.")
-        for label in phase_labels:
-            st.caption(label)
-    elif phase is not None:
-        st.caption(f"Solver phase: {phase}")
-
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("Current Model Mix")
-        weights = st.session_state.current_weights
-        
-        # Visualize Weights
-        params = {}
-        for i, name in enumerate(st.session_state.trainer.adapter_names):
-            val = weights[i] if i < len(weights) else 0
-            st.progress(float(val), text=f"{name}: {val:.2f}")
-            params[name] = val
+        st.balloons()
+        st.success("✅ Nash Equilibrium Reached!")
+        if hasattr(st.session_state, 'final_result') and st.session_state.final_result is not None:
+            # result might be a torch.Tensor, numpy array or None
+            res = st.session_state.final_result
+            if isinstance(res, torch.Tensor):
+                res = res.cpu().numpy().flatten()
+            elif isinstance(res, (list, np.ndarray)):
+                res = np.array(res).flatten()
             
-    with col2:
-        st.subheader("Model Generation Preview")
-        st.info("Simulating text generation with current mixing weights...")
-        st.code(f"Output with mix {np.round(weights, 2)}:\n\n'The user asked for code. This model is {weights[0]:.2f} Safe and {weights[1]:.2f} Helpful.'")
+            st.json(dict(zip(obj_names, res.tolist())))
         
-    st.divider()
-    
-    st.subheader("👨‍⚖️ Your Verdict: What is the PRIMARY defect?")
-    st.write("Select the objective that is **most dissatisfied** (i.e. the one that needs MORE attention or is causing the failure).")
-    
-    cols = st.columns(len(st.session_state.trainer.adapter_names))
-    for i, name in enumerate(st.session_state.trainer.adapter_names):
-        with cols[i]:
-            if st.button(f"Too Poor: {name}", key=f"btn_{i}", use_container_width=True):
-                submit_verdict(i)
-                st.rerun()
+        if st.button("Restart"):
+            st.session_state.solver_gen = None
+            st.rerun()
+    else:
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.subheader("📊 Current Manifold Weights")
+            for i, name in enumerate(obj_names):
+                val = float(st.session_state.current_weights[i])
+                st.progress(val, text=f"{name}: {val*100:.1f}%")
+            
+            st.divider()
+            st.metric("Walk Step", st.session_state.step)
+            if st.session_state.history:
+                f_score = calculate_frustration_score(st.session_state.history)
+                st.write(f"Topology Frustration: `{f_score:.2f}`")
 
-elif st.session_state.finished:
-    st.balloons()
-    st.header("Optimization Complete")
-    st.write("The topological walk has converged to a fixed point.")
-    
-    # Plot history
+        with col2:
+            st.subheader("🤖 Local LLM Response")
+            st.info(f"Generated at weights: {np.round(st.session_state.current_weights, 2)}")
+            st.chat_message("assistant").write(st.session_state.last_response)
+            
+            st.divider()
+            st.subheader("👨‍⚖️ Your Verdict")
+            st.write("Which capability is **least satisfied** in this response?")
+            
+            v_cols = st.columns(3)
+            for i, name in enumerate(obj_names):
+                if v_cols[i].button(f"Needs more {name}", key=f"btn_{i}", use_container_width=True, type="primary" if i==0 else "secondary"):
+                    submit_verdict(i)
+                    st.rerun()
+
     if st.session_state.history:
+        st.divider()
+        st.subheader("📈 Alignment Path")
         chart_data = np.array(st.session_state.history)
         st.line_chart(chart_data)
-
-else:
-    st.info("Click 'Start Alignment' to begin the Human-in-the-Loop session.")

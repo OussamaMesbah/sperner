@@ -119,7 +119,7 @@ if __name__ == "__main__":
         except Exception as e:
             pass # Skip errors
     
-    output_file = "sperner_dataset.json"
+    output_file = "data/sperner_dataset.json"
     with open(output_file, "w") as f:
         json.dump(dataset, f, indent=2)
     print(f"Generated {len(dataset)} samples into {output_file}")

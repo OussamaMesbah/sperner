@@ -96,7 +96,7 @@ class SpernerTrainer:
             
             while True:
                 # out is (v, w, (active_dim, total_dim))
-                current_w = out[1].cpu().numpy() if isinstance(out[1], torch.Tensor) else out[1]
+                current_w = out[1].cpu().numpy().flatten() if isinstance(out[1], torch.Tensor) else np.array(out[1]).flatten()
                 phase = out[2]
                 
                 # Yield to UI

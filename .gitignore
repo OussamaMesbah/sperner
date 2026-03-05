@@ -165,6 +165,3 @@ debug_output_*.txt
 verify_output.txt
 reproduce_slowness.py
 test_human_ui_fix.py
-
-# Local Tests
-tests_local/

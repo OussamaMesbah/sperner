@@ -158,3 +158,55 @@ class NDimTopoAlignSolver:
                     last_pivoted_k[i] = pk
 
         return self.get_barycentric_weights(y_base)
+
+    def solve_generator(self) -> torch.Generator:
+        """
+        Generator version for UI/Async usage.
+        Yields: (vertex_batch, weights_batch, (active_dim, total_dim))
+        """
+        batch_size = 1 # Generators typically handle single stream
+        y_base = torch.zeros((batch_size, self.d), device=self.device, dtype=torch.long)
+        sigma = torch.tile(torch.arange(self.d, device=self.device), (batch_size, 1))
+        
+        simplex_labels = torch.zeros((batch_size, self.n_objs), device=self.device, dtype=torch.long)
+        
+        # Initial labels
+        for k in range(self.n_objs):
+            v = self.get_vertex_batch(y_base, sigma, k)
+            w = self.get_barycentric_weights(v)
+            label = yield (v, w, (0, self.d))
+            simplex_labels[:, k] = label
+
+        for active_dim in range(1, self.d + 1):
+            target_labels = set(range(active_dim + 1))
+            door_labels = set(range(active_dim))
+            last_pivoted_k = -1
+            
+            for step in range(self.n_sub * active_dim * 2):
+                labels = simplex_labels[0, :active_dim+1].tolist()
+                if set(labels).issuperset(target_labels):
+                    break
+                
+                pivot_k = -1
+                for k in range(active_dim + 1):
+                    if k == last_pivoted_k: continue
+                    face = [labels[j] for j in range(active_dim + 1) if j != k]
+                    if set(face) == door_labels:
+                        pivot_k = k
+                        break
+                
+                if pivot_k == -1: 
+                    logger.warning(f"Path lost at stage {active_dim}. Returning best approximation.")
+                    return self.get_barycentric_weights(y_base)
+                
+                pk_tensor = torch.tensor([pivot_k], device=self.device, dtype=torch.long)
+                y_base, sigma_active = self.pivot_batch(y_base, sigma, pk_tensor)
+                sigma = sigma_active
+                
+                new_v = self.get_vertex_batch(y_base, sigma, pivot_k)
+                new_w = self.get_barycentric_weights(new_v)
+                label = yield (new_v, new_w, (active_dim, self.d))
+                simplex_labels[0, pivot_k] = label
+                last_pivoted_k = pivot_k
+
+        return self.get_barycentric_weights(y_base)
