@@ -26,16 +26,17 @@ Low-level engine for N-dimensional simplicial walks.
 
 ---
 
-### `SpernerTrainer(base_model_name, adapter_paths, objective_funcs, mock=False)`
+### `SpernerTrainer(base_model, adapters, objectives, mock=True)`
 Integration with Transformers/PEFT for LoRA weight merging.
 
 - **Parameters:**
-    - `base_model_name` (str): Hugging Face model identifier.
-    - `adapter_paths` (List[str]): Paths to LoRA adapter weights.
-    - `objective_funcs` (List[Callable]): Functions returning a scalar reward/loss.
-    - `mock` (bool): If True, performs simulated merging without loading model weights.
+    - `base_model` (str or model): Hugging Face model identifier or model object.
+    - `adapters` (List[str]): Names of LoRA adapters.
+    - `objectives` (List[Callable]): Functions returning a scalar reward/loss.
+    - `mock` (bool): If True (default), performs simulated merging without loading model weights.
 - **Methods:**
-    - `train(grid_size=20)`: Calculates optimal mixing weights for all adapters.
+    - `train(grid_size=50)`: Calculates optimal mixing weights for all adapters.
+    - `train_generator(grid_size=20)`: Interactive generator yielding weights for human-in-the-loop feedback.
 
 ---
 
