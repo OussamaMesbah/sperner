@@ -3,3 +3,6 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/OussamaMesbah/sperner/security/advisories/new
     about: Please report security problems privately, not as an issue.
+  - name: Try the web app
+    url: https://sperner.streamlit.app
+    about: Split the rent of your own flat, one question at a time.

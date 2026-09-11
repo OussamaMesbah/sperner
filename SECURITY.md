@@ -20,8 +20,9 @@ you prefer otherwise.
 
 ## Scope
 
-In scope: the `sperner` package, the web app in `streamlit_app.py`, the benchmark and the
-GitHub Actions workflows.
+In scope: the `sperner` package, the web app in `streamlit_app.py` and its deployment at
+[sperner.streamlit.app](https://sperner.streamlit.app), the benchmark and the GitHub
+Actions workflows.
 
 Out of scope: whether a split suits your situation. What a result guarantees, and under
 which assumptions, is stated in [docs/THEORY.md](docs/THEORY.md).
