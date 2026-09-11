@@ -6,9 +6,12 @@ which room would you take?"*. sperner then gives every room a price and every pe
 room they picked at those prices. It implements Francis Su's *Rental Harmony* (1999): a
 constructive proof of Sperner's lemma, turned into a questionnaire.
 
-[![tests](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml/badge.svg)](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml)
+[![tests](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/sperner)](https://pypi.org/project/sperner/)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 ![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/OussamaMesbah/sperner/blob/main/LICENSE)
+[![Open the app](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sperner.streamlit.app)
 
 - **Answers, not valuations.** Nobody has to say what a room is worth in money. Budgets, a
   partner who stays over or a dislike of stairs enter the answers as they are.
@@ -21,10 +24,8 @@ constructive proof of Sperner's lemma, turned into a questionnaire.
 ## Try it
 
 ```bash
-pip install git+https://github.com/OussamaMesbah/sperner.git
+pip install sperner
 ```
-
-(The `sperner` on PyPI is still the old multi-objective library, version 0.2.)
 
 ```python
 from sperner import split_rent

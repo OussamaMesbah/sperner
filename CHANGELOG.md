@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## Unreleased
+
+## 0.3.0 (2026-09-11)
 
 sperner is now a library for envy-free division. It replaces the earlier multi-objective
 API entirely; code written for 0.2 does not run with it.
