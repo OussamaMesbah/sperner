@@ -33,6 +33,8 @@ The web app keeps answers in the memory of the current session only, writes noth
 disk and shows nobody's answers, only the final split. Neither needs credentials. The
 workflows run with a read-only `GITHUB_TOKEN` unless a job states otherwise (creating a
 release needs write access to contents), and publishing to PyPI uses trusted publishing,
-so no PyPI token is stored anywhere. Secret scanning with push protection is enabled for
-the repository, and Dependabot keeps the pinned actions and the app's dependencies up to
-date.
+so no PyPI token is stored anywhere; the `pypi` environment accepts release tags only and
+waits for the maintainer's approval. Secret scanning with push protection, Dependabot
+alerts and security updates, private vulnerability reporting and CodeQL code scanning are
+enabled for the repository. Rulesets protect `main`, `dev` and the release tags, and
+Dependabot keeps the pinned actions and the app's dependencies up to date.
