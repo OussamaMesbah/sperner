@@ -18,7 +18,7 @@ body:
     id: reproduce
     attributes:
       label: How to reproduce
-      description: A few lines of Python, or the file from "Save the answers" in the web app.
+      description: A few lines of Python, or what you entered in the web app (rooms, rent, precision).
       render: python
   - type: input
     id: version

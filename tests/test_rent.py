@@ -208,3 +208,16 @@ def test_a_room_that_costs_the_whole_rent_cannot_be_picked():
 
     with pytest.raises(ValueError, match="whole rent"):
         split_rent(rooms, 900, PEOPLE, most_expensive, allow_negative=True)
+
+
+def test_a_room_shown_at_the_whole_rent_is_unavailable():
+    from sperner.rent import _Flat
+
+    # A share so small that the room's price rounds to the whole rent.
+    flat = _Flat(["A", "B", "C"], 900, PEOPLE, None, True)
+    tiny = Fraction(1, 3_000_000)
+    shares = (tiny, (1 - tiny) / 2, (1 - tiny) / 2)
+    assert flat.prices(shares)["A"] == 900
+    assert flat.unavailable(shares) == ("A",)
+    with pytest.raises(ValueError, match="whole rent"):
+        flat.pick("A", shares)

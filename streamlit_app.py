@@ -10,8 +10,6 @@ envies at the end.
 
 from __future__ import annotations
 
-import json
-
 import streamlit as st
 
 from sperner import NewcomerSplit, RentSession, RentSplit
@@ -135,25 +133,15 @@ def result(session: RentSession) -> None:
             f"Each of you picked your room at prices within {money(split.precision)} of "
             "these: up to that margin, nobody envies anybody."
         )
-        with st.expander("Why each of you gets that room"):
-            for person, choice in split.choices.items():
-                prices = ", ".join(f"{room} {money(p)}" for room, p in choice.prices.items())
-                how = "picked" if choice.asked else "was assumed to pick"
-                st.markdown(f"**{person}** {how} **{choice.room}** at {prices}.")
     elif isinstance(split, NewcomerSplit):
         st.table([{"Room": room, "Rent": money(price)} for room, price in split.prices.items()])
         st.success("The newcomer can take any room; here is who takes which of the others.")
         for taken, others in split.plan.items():
             rest = ", ".join(f"{person} takes {room}" for person, room in others.items())
             st.markdown(f"If the newcomer takes **{taken}**: {rest}.")
+    # The phone is shared, so the result shows the split and never anybody's answers.
     counts = ", ".join(f"{person} {count}" for person, count in split.questions.items())
-    st.caption(f"{sum(split.questions.values())} questions ({counts}).")
-    st.download_button(
-        "Save the answers",
-        data=json.dumps(session.to_dict(), indent=2),
-        file_name="rent-split.json",
-        mime="application/json",
-    )
+    st.caption(f"{sum(split.questions.values())} questions ({counts}). The answers stay private.")
     if st.button("Start over", key="restart"):
         del st.session_state.session
         st.rerun()

@@ -191,10 +191,14 @@ class _Flat:
         return dict(zip(self.rooms, _to_cents(self.exact_prices(shares), self.rent), strict=True))
 
     def unavailable(self, shares: Sequence[Fraction]) -> tuple[str, ...]:
-        """Rooms nobody may pick: with negative rents allowed, those at the whole rent."""
+        """Rooms nobody may pick: with negative rents allowed, those shown at the whole rent.
+
+        This includes a room whose share is so small that its price rounds to the rent,
+        so that what people see and what is accepted agree.
+        """
         if not self.allow_negative:
             return ()
-        return tuple(room for room, s in zip(self.rooms, shares, strict=True) if s == 0)
+        return tuple(room for room, price in self.prices(shares).items() if price == self.rent)
 
     def room_index(self, room: str | int) -> int:
         if isinstance(room, str):

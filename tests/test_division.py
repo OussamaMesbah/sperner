@@ -208,3 +208,14 @@ def test_newcomer_session_matches_direct_call():
     while (question := session.next_question()) is not None:
         session.answer(ask(question.person, question.shares))
     assert session.result == direct
+
+
+@pytest.mark.parametrize("factor", [2.0, "3", 1])
+def test_factor_must_be_an_integer_of_at_least_two(factor):
+    with pytest.raises((TypeError, ValueError), match="factor"):
+        divide(3, lambda p, s: 0, bads=True, factor=factor)
+
+
+def test_number_of_people_must_be_an_integer():
+    with pytest.raises(TypeError, match="n must be an integer"):
+        divide(2.0, lambda p, s: 0, bads=True)

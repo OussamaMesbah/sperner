@@ -85,3 +85,10 @@ def test_start_over_keeps_the_flat():
     assert app.text_area(key="rooms").value == "Big\nSmall"
     assert app.text_area(key="people").value == "Ana\nBen"
     assert app.number_input(key="rent").value == 1500
+
+
+def test_the_result_shows_nobodys_answers():
+    app = answer_all(start(ROOMS, list(MODELS)), MODELS, ROOMS)
+    shown = " ".join(m.value for m in app.markdown)
+    assert " picked " not in shown
+    assert not app.get("download_button")

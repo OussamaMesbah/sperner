@@ -258,9 +258,16 @@ def _check(tolerance: float | Fraction, factor: int) -> Fraction:
     tolerance = Fraction(tolerance)
     if not 0 < tolerance <= 1:
         raise ValueError(f"tolerance must be in (0, 1], got {tolerance}")
-    if factor < 2:
+    if _integer(factor, "factor") < 2:
         raise ValueError(f"factor must be at least 2, got {factor}")
     return tolerance
+
+
+def _integer(value: object, name: str) -> int:
+    try:
+        return operator.index(value)
+    except TypeError:
+        raise TypeError(f"{name} must be an integer, got {value!r}") from None
 
 
 def _centre(cell: tuple[Point, ...], size: int) -> Shares:
@@ -293,7 +300,7 @@ def divide(
         The division, who gets which piece, and the evidence for it.
     """
     tolerance = _check(tolerance, factor)
-    if n < 1:
+    if _integer(n, "n") < 1:
         raise ValueError(f"n must be at least 1, got {n}")
     if n == 1:
         return Division((Fraction(1),), (0,), 1, (0,), (Choice(0, (Fraction(1),), 0, False),))

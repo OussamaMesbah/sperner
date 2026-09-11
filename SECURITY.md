@@ -29,8 +29,8 @@ which assumptions, is stated in [docs/THEORY.md](docs/THEORY.md).
 ## How the project handles data and secrets
 
 The package has no runtime dependencies, makes no network requests and stores nothing.
-The web app keeps answers in the memory of the current session only and writes nothing to
-disk; "Save the answers" hands them to the user as a file. Neither needs credentials. The
+The web app keeps answers in the memory of the current session only, writes nothing to
+disk and shows nobody's answers, only the final split. Neither needs credentials. The
 workflows run with a read-only `GITHUB_TOKEN` unless a job states otherwise (creating a
 release needs write access to contents), and publishing to PyPI uses trusted publishing,
 so no PyPI token is stored anywhere. Secret scanning with push protection is enabled for
