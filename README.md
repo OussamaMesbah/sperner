@@ -1,300 +1,223 @@
-# Sperner
+# sperner
 
-**A PyTorch implementation of Sperner / Kuhn-Freudenthal walks for finding panchromatic-cell centroids on labeled simplices.**
+**Split the rent of a shared flat so that nobody envies anybody, without anybody putting a
+price on a room.** Each flatmate answers a few questions of the form *"at these prices,
+which room would you take?"*. sperner then gives every room a price and every person a
+room they picked at those prices. It implements Francis Su's *Rental Harmony* (1999): a
+constructive proof of Sperner's lemma, turned into a questionnaire.
 
-[![Tests](https://github.com/OussamaMesbah/sperner/actions/workflows/test.yml/badge.svg)](https://github.com/OussamaMesbah/sperner/actions/workflows/test.yml)
-[![PyPI version](https://img.shields.io/pypi/v/sperner.svg)](https://pypi.org/project/sperner/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![tests](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml/badge.svg)](https://github.com/OussamaMesbah/sperner/actions/workflows/tests.yml)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 
----
+- **Answers, not valuations.** Nobody has to say what a room is worth in money. Budgets, a
+  partner who stays over or a dislike of stairs enter the answers as they are.
+- **About a dozen questions each** for three flatmates, to within 10 on a rent of 3,000.
+- **One flatmate still missing?** With three rooms, two people can settle prices that work
+  whichever room the third takes (Frick, Houston-Edwards and Meunier 2019).
+- **Exact and checked.** Pure Python without dependencies, integers and fractions in every
+  decision, and every result says which answers it rests on.
 
-## What this library does
-
-Given a **cheap, deterministic oracle** that, for any weight vector `w` on the
-`(n-1)`-simplex, returns the index of one objective `i ∈ {0, …, n-1}` — Sperner finds
-a small simplicial cell whose vertices cover **all** `n` labels (a *panchromatic cell*),
-and returns its centroid.
-
-By Sperner's Lemma (1928), such a cell exists for any labeling that satisfies the
-**Sperner boundary condition**:
-
-> On the face `w_i = 0`, the oracle must not return label `i`.
-
-When the labeling is induced by a continuous map `f: Δ → Δ`, the centroid of the
-panchromatic cell approximates a **Brouwer fixed point** of that map (via the
-Knaster-Kuratowski-Mazurkiewicz theorem). The approximation error shrinks with grid
-resolution.
-
-That is what this library computes. **Nothing more.**
-
-### What this library is *not*
-
-- **It is not a Nash-equilibrium solver.** Nash equilibria are fixed points of
-  best-response correspondences in strategic games; this library does not model
-  any game. Earlier versions of this README used the term "Nash equilibrium" loosely
-  — that was wrong, and has been removed.
-- **It is not an LLM alignment method.** Real alignment (RLHF, DPO, Constitutional
-  AI, etc.) shapes model parameters from gradient or preference signals. This
-  library only computes a single point on the simplex of *mixing weights*, given
-  a hand-written oracle. See [§ Honest limits](#honest-limits) below.
-- **It is not "O(N)".** Sperner walks are PPAD-complete in general (Papadimitriou
-  1994). The implementation's loop bound is `O(n_sub · d²)` pivots per walk for `d = n-1`.
-  See [§ Complexity](#complexity).
-
----
-
-## When this library is genuinely useful
-
-Use Sperner when **all of the following** hold:
-
-1. You have a multi-objective problem and want **one balanced operating point**, not a Pareto frontier.
-2. Your oracle is **cheap and deterministic** (e.g., a closed-form metric, a small benchmark, a cached evaluation).
-3. You can phrase your oracle as *"at weights w, which objective is most underserved?"* — and the answer satisfies the Sperner boundary condition.
-4. The number of objectives is small to moderate (≤ ~10 in practice — beyond that, the grid pivots get expensive).
-
-Concretely: balancing precision/recall/latency in a deterministic classifier;
-finding a mixing point between several closed-form scoring rules; teaching
-combinatorial topology with an interactive Streamlit walk.
-
-For **noisy** oracles or **expensive** evaluators (LLM benchmarks, human
-judgments), see the surrogate solver — but read its caveats first, because the
-silent boundary override means a misbehaving real oracle won't crash the walk,
-it will just produce a meaningless centroid.
-
----
-
-## Installation
+## Try it
 
 ```bash
-pip install sperner
-
-# Latest from source
 pip install git+https://github.com/OussamaMesbah/sperner.git
-
-# Local editable install
-pip install -e .
-
-# With LoRA/PEFT support (experimental, see caveats below)
-pip install "sperner[peft]"
-
-# With Streamlit human-in-the-loop UI
-pip install "sperner[ui]"
-
-# Everything
-pip install "sperner[all]"
 ```
 
-## Quick start
+(The `sperner` on PyPI is still the old multi-objective library, version 0.2.)
 
 ```python
-import numpy as np
-import torch
-from sperner import solve_equilibrium
+from sperner import split_rent
+from sperner.people import QuasiLinear  # simulated flatmates for this example
 
-torch.manual_seed(0)
+rooms = ["Balcony", "Big", "Small"]
+flatmates = {
+    "Mia": QuasiLinear((1200, 900, 600)),
+    "Jonas": QuasiLinear((1000, 1050, 650)),
+    "Lea": QuasiLinear((1100, 800, 800)),
+}
 
-# Argmax-gap labeling — a textbook Sperner labeling whose continuous
-# triple-point sits at `target`.
-target = np.array([0.4, 0.4, 0.2])
 
-def oracle(w: np.ndarray) -> int:
-    # Sperner boundary condition: do not return label i if w[i] == 0.
-    gaps = target - w
-    gaps[w <= 0] = -np.inf
-    return int(np.argmax(gaps))
+def ask(person, prices):
+    # In real life: show `prices` (room -> rent) to `person`, return the room they pick.
+    return rooms[flatmates[person].choose([float(prices[r]) for r in rooms])]
 
-weights = solve_equilibrium(n_objs=3, subdivision=50, oracle=oracle)
-# `weights` is the centroid of a panchromatic cell found by the walk.
-# It is *near* but not necessarily equal to `target` — the walk finds
-# *some* panchromatic cell, not specifically the one containing the
-# triple-point of the labeling. See docs/THEORY.md for the caveats.
-print(weights)
+
+print(split_rent(rooms, 2400, list(flatmates), ask, tolerance=5))
 ```
 
-### Programmatic batch API
+```text
+Balcony  Mia              1,097.39
+Big      Jonas              801.10
+Small    Lea                501.51
+Everyone picked their room at prices within 3.32 of these (28 questions: Mia 13, Jonas 6, Lea 9).
+```
+
+For an app, a form or a chat bot, `RentSession` asks one question at a time and can be
+saved as JSON between questions:
 
 ```python
-import torch
-from sperner import NDimEquilibSolver
+from sperner import RentSession
 
-solver = NDimEquilibSolver(n_objs=4, subdivision=30)
-
-def judge(weights_batch: torch.Tensor) -> torch.Tensor:
-    """Return label index per row in the batch.
-
-    Must satisfy: weights_batch[i, label[i]] > 0 for all i (Sperner boundary).
-    """
-    labels = []
-    for w in weights_batch:
-        scores = my_deterministic_metric(w.numpy())
-        # argmin score = "most underserved"; mask out zero-weight objectives.
-        scores_masked = np.where(w.numpy() > 0, scores, np.inf)
-        labels.append(int(np.argmin(scores_masked)))
-    return torch.tensor(labels)
-
-result = solver.solve(oracle_fn=judge, batch_size=1)
-print(result[0])
+session = RentSession(rooms, 2400, ["Mia", "Jonas", "Lea"], tolerance=5)
+while (question := session.next_question()) is not None:
+    room = ...  # show question.prices to question.person
+    session.answer(room)
+print(session.result)
 ```
 
-### Human-in-the-loop (Streamlit UI)
-
-For interactive exploration — the solver proposes weights, your local LLM
-generates a response at those weights, and you pick which objective is
-currently weakest. This is an **educational tool**, not an alignment pipeline.
+The web app in [streamlit_app.py](streamlit_app.py) runs this on one phone that the
+flatmates pass around, so that nobody sees the others' answers:
 
 ```bash
-streamlit run app.py
+pip install -e ".[app]" && streamlit run streamlit_app.py
 ```
 
-The UI supports 2–10 configurable objectives and works with any OpenAI-compatible
-API (LM Studio, Ollama, vLLM).
+## A flatmate who is not there yet
 
-### LoRA adapter merging (experimental)
+With three rooms and two names, `split_rent` returns prices and a plan for every room the
+newcomer might take:
 
 ```python
-from sperner import SpernerTrainer
-
-trainer = SpernerTrainer(
-    base_model=my_peft_model,
-    adapters=["safety-lora", "code-lora", "chat-lora"],
-    objectives=[safety_score, code_score, chat_score],
-    mock=False,  # See warnings below
-)
-optimal_mix = trainer.train(grid_size=30)
+print(split_rent(rooms, 2400, ["Mia", "Jonas"], ask, tolerance=5))
 ```
 
-> **Caveat:** with `mock=False`, every pivot step calls every objective on the
-> blended model. For 3 objectives on a 30-cell grid you can expect hundreds of
-> full-model evaluations — usually slower than a coarse direct sweep, and a tiny
-> fraction of what RLHF/DPO does in the same time. The trainer emits a
-> `warnings.warn` when invoked in non-mock mode.
-
----
-
-## Complexity
-
-The `_run_walk` loop in [sperner/ndim_solver.py](sperner/ndim_solver.py) bounds
-pivot steps by `n_sub · (active_dim + 1) · MAX_PIVOT_STEPS_PER_CELL` per
-dimension-lifting phase, summed over `d = n-1` phases:
-
-```
-oracle calls ≲ MAX_PIVOT_STEPS_PER_CELL · n_sub · d · (d + 1) / 2
-            ≈ O(n_sub · d²)
+```text
+Balcony: 1,068.86
+Big: 864.75
+Small: 466.39
+If the newcomer takes Balcony: Mia takes Small, Jonas takes Big.
+If the newcomer takes Big: Mia takes Balcony, Jonas takes Small.
+If the newcomer takes Small: Mia takes Balcony, Jonas takes Big.
 ```
 
-Concretely, for `n_objs = 10, subdivision = 50` the loop can take up to
-**~9,000 pivots** in the worst case (in practice the walk terminates earlier
-on well-behaved oracles). For the legacy 2D solver, the bound in
-[sperner/solver.py](sperner/solver.py) is `O(n_sub²)`.
+## How many questions?
 
-Sperner walks are **PPAD-complete** in general (Papadimitriou 1994) — there is no
-known polynomial-time algorithm for finding panchromatic cells in arbitrary
-labelings. The empirical numbers above are typical-case, not worst-case.
+Simulated flats with a rent of 3,000, 200 flats per row
+([benchmark](benchmarks/README.md), [full results](benchmarks/results.md)):
 
-### Comparison to alternatives
+| Flatmates | Precision | Questions per person, mean | 90th percentile |
+|---|---|---|---|
+| 2 | 10 | 3.9 | 5.0 |
+| 3 | 30 | 10.1 | 14.0 |
+| 3 | 10 | 12.3 | 17.0 |
+| 3 | 3 | 14.4 | 20.7 |
+| 4 | 10 | 19.2 | 28.8 |
+| 5 | 10 | 38.7 | 62.8 |
 
-|                                | Grid search (resolution X) | Sperner (this library) |
-| :----------------------------- | :------------------------- | :--------------------- |
-| Oracle calls (typical case)    | `O(X^N)`                   | `O(X · N²)` in `n_sub` and `d`   |
-| Worst-case guarantee           | Exhaustive                 | PPAD-complete          |
-| Needs gradients                | No                         | No                     |
-| Returns                        | Full landscape             | One centroid           |
-| Tolerates noisy oracle         | Naturally                  | No — Sperner condition required |
+Every split in these runs rested on answers alone, and the largest envy was 1.4 times the
+precision; the guarantee is twice the precision. Leaving a room for a newcomer costs more:
+33 questions each for the two who answer, at precision 10.
 
-For **noisy oracles**, **Pareto fronts**, or **>10 objectives**, prefer
-multi-objective Bayesian optimization (BoTorch's qNEHVI/ParEGO) or
-evolutionary methods (NSGA-II via [pymoo](https://pymoo.org/)).
+## Why answers and not valuations
 
----
+Spliddit, the best-known rent calculator, asks everybody to value every room in money and
+assumes that a room's appeal is its value minus its price. That model cannot say "I can
+pay 1,100 at most". In the benchmark, three flatmates have budgets that together exceed
+the rent, and rent above a budget hurts four times as much:
 
-## Theory and citations
+| Method | Flats where someone pays over budget | Envy under true preferences, mean | Largest envy |
+|---|---|---|---|
+| Spliddit, given the values | 66% | 179.9 | 1,259.9 |
+| sperner, given answers | 50% | 1.3 | 13.2 |
 
-The algorithm is a textbook **Scarf/Kuhn fixed-point walk** on the
-Kuhn-Freudenthal triangulation:
+In sperner's splits, a flatmate who pays more than their budget still prefers their room
+at its price to every other room at its price, within the precision. In Spliddit's they
+often do not. The cost is more input: about 12 questions each, against 3 numbers each.
 
-- **Sperner, E.** (1928). *Neuer Beweis für die Invarianz der Dimensionszahl und des Gebietes*. Abh. Math. Sem. Hamburg, 6: 265–272.
-- **Scarf, H.** (1967). *The Approximation of Fixed Points of a Continuous Mapping*. SIAM J. Appl. Math., 15(5): 1328–1343.
-- **Kuhn, H. W.** (1968). *Simplicial approximation of fixed points*. PNAS, 61(4): 1238–1242.
-- **Papadimitriou, C. H.** (1994). *On the complexity of the parity argument and other inefficient proofs of existence*. JCSS, 48(3): 498–532. (PPAD-completeness.)
-- **Freudenthal, H.** (1942). *Simpliziale Zerlegungen von beschränkter Flachheit*. Annals of Mathematics, 43(3): 580–582. (Triangulation used here.)
+## Cakes and chores
 
-See [docs/THEORY.md](docs/THEORY.md) for a careful statement of what Sperner's
-Lemma does and does not give you, including the relationship to KKM and Brouwer.
+`divide` is the general tool: `n` people and `n` pieces whose sizes add up to one. You
+supply `pick(person, shares)`, which returns the index of the piece `person` would take if
+the pieces had sizes `shares` (fractions that add up to one).
 
----
+```python
+from sperner import divide
 
-## Honest limits
-
-The earlier marketing for this project significantly overstated the case.
-The current README is written with full awareness that:
-
-- The oracle contract — *"return the most underserved objective"* — is awkward
-  for objectives that are **not on the same scale**. There is no canonical way
-  to compare "safety = 0.7" with "helpfulness = 0.9" without per-objective
-  normalization, and the library does not provide one.
-- Real LLM judges are **stochastic**. Stochastic labels break the panchromatic
-  guarantee — repeated calls at the same `w` can yield different labels,
-  invalidating the walk's termination conditions.
-- The library **silently overrides** oracle labels that violate the Sperner
-  boundary condition (in `ndim_solver._run_walk`, `solver.oracle_label`, and
-  `moe_router.forward_route`). If your oracle returns label `i` at a point
-  where `w_i = 0`, the library quietly substitutes a different label. The
-  walk then converges, but to a point determined by the override heuristic,
-  not by your oracle. This is documented in
-  [docs/THEORY.md](docs/THEORY.md#the-boundary-condition-and-silent-overrides)
-  and the relevant docstrings.
-- The MoE router in `sperner/moe_router.py` runs a full Sperner walk per
-  routed input. It is a **research demo**, not a production routing layer —
-  softmax routing is many orders of magnitude faster and the routing-collapse
-  problem has much cheaper fixes (load-balancing loss, expert dropout).
-  The class now emits a warning when called.
-
-If any of these limits matter for your use case, this is not the right tool.
-
----
-
-## Project structure
-
-```
-sperner/
-  ndim_solver.py       # Core N-dimensional Sperner walk (PyTorch)
-  solver.py            # Legacy 2D solver (3 objectives, configurable target)
-  adaptive_solver.py   # Iterative zoom refinement (3-objective only)
-  surrogate_solver.py  # KNN active-learning wrapper for expensive oracles
-  sperner_trainer.py   # PEFT/LoRA adapter integration (experimental)
-  moe_router.py        # Topological MoE routing (research demo)
-  agentic_judge.py     # Synthetic-oracle helper for batch demos
-  human_ui.py          # Streamlit UI for manual labeling
-  analytics.py         # Walk-path frustration analysis
-  plotting.py          # Simplex heatmap visualization (3D only)
-  industrial.py        # Wrapper for adapter mixing by user-supplied evaluators
+division = divide(3, pick, tolerance=0.01)  # a cake: nobody takes an empty piece
+division = divide(3, pick, bads=True, tolerance=0.01)  # chores: everybody takes an empty one
+division.shares, division.assignment
 ```
 
-## Docs
+## How it works
 
-- [API Reference](docs/API_REFERENCE.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Theory: Sperner / KKM / Brouwer](docs/THEORY.md)
-- [Model Card integration template](docs/MODEL_CARD_INTEGRATION.md)
+Every division of the rent is a point of a simplex, a triangle for three rooms. sperner
+cuts it into small cells and gives the corners of every cell to different flatmates (Su
+1999). The owner of a corner is asked which room they would take at the prices it stands
+for. A cell whose corners got all different rooms is an envy-free split, up to the size of
+a cell. Sperner's lemma (1928) guarantees such a cell, and the constructive proof of Cohen
+and Kuhn follows a path of neighbouring cells to one, asking only at the corners it meets.
+Nobody is asked about prices at which a room is free: a relabeling by Frick,
+Houston-Edwards and Meunier (2019) settles those without questions. Then the grid is
+refined around the cell found, three times finer each round.
+
+[docs/THEORY.md](docs/THEORY.md) states the algorithms, their assumptions and what a
+result guarantees. The walk is available on its own, for any Sperner labeling:
+
+```python
+from sperner import find_fully_labeled_cell
+
+target = (0.2, 0.5, 0.3)
+
+
+def label(point):  # Brouwer's labeling of the constant map to `target`
+    size = sum(point)
+    return next(i for i, t in enumerate(target) if point[i] > 0 and point[i] / size >= t)
+
+
+walk = find_fully_labeled_cell(3, 1000, label)
+walk.cell.points  # ((200, 499, 301), (199, 500, 301), (199, 499, 302))
+walk.labeled  # 1405 of the grid's 501,501 points
+```
+
+## Limitations
+
+- **An assumption about free rooms.** Without `allow_negative`, rents are between zero and
+  the total, which assumes that everybody would take a free room over one they pay for. A
+  result says which choices rest on that assumption rather than on answers
+  (`RentChoice.asked`); in the benchmark, none did. For a room so bad that its tenant has
+  to be paid, use `allow_negative=True`.
+- **Approximate.** Everybody picked their room at prices within `precision` of the final
+  ones, not at the final prices themselves. A finer precision costs a few more questions.
+- **Not strategy-proof.** A flatmate who knows the others' answers can sometimes gain by
+  lying. No envy-free rent division method is strategy-proof.
+- **Many flatmates.** Questions grow quickly with the number of people: five flatmates
+  answer about 40 questions each.
+- **The newcomer mode** covers three rooms. Frick, Houston-Edwards and Meunier prove the
+  case of `n` rooms too; it is not implemented yet.
+
+## Related tools
+
+- [Spliddit](http://www.spliddit.org) computes exactly envy-free rents from values that
+  everybody states in money (Gal, Mash, Procaccia and Zick 2017).
+- The New York Times' interactive rent calculator (2014) brought Su's method to a wide
+  audience.
+- [fairpy](https://github.com/erelsgl/fairpy) collects fair division algorithms in Python,
+  among them rent division with hard budgets (Procaccia, Velez and Yu 2018).
+
+## Development
+
+```bash
+pip install -e ".[app,dev]"
+pytest
+ruff check .
+python -m benchmarks.run --out benchmarks/results.md
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Citation
 
-```bibtex
-@software{mesbah2026sperner,
-  author = {Mesbah, Oussama},
-  title = {Sperner: PyTorch implementation of Kuhn-Freudenthal Sperner walks},
-  year = {2026},
-  url = {https://github.com/OussamaMesbah/sperner}
-}
-```
+If you use sperner in research, please cite it with the metadata in
+[CITATION.cff](CITATION.cff), together with the papers it implements:
 
-## Support
+- Su, F. E. (1999). Rental harmony: Sperner's lemma in fair division. *American
+  Mathematical Monthly* 106(10), 930–942.
+- Frick, F., Houston-Edwards, K., Meunier, F. (2019). Achieving rental harmony with a
+  secretive roommate. *American Mathematical Monthly* 126(1), 18–32.
 
-If you find this implementation useful for teaching, research demos, or
-small deterministic balancing problems, you can support development at:
-
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >](https://www.buymeacoffee.com/omesbahf)
+Up to version 0.2, sperner was a multi-objective optimisation library; the
+[changelog](CHANGELOG.md) explains the change.
 
 ## License
 

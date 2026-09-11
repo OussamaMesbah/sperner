@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use sperner in research, please cite it as below."
+title: "sperner: envy-free division with Sperner's lemma"
+type: software
+authors:
+  - family-names: Mesbah
+    given-names: Oussama
+repository-code: "https://github.com/OussamaMesbah/sperner"
+version: 0.3.0
+license: MIT
+keywords:
+  - fair division
+  - rent division
+  - envy-freeness
+  - Sperner's lemma
+  - cake cutting
