@@ -66,8 +66,9 @@ while (question := session.next_question()) is not None:
 print(session.result)
 ```
 
-The web app in [streamlit_app.py](streamlit_app.py) runs this on one phone that the
-flatmates pass around, so that nobody sees the others' answers:
+The web app at **[sperner.streamlit.app](https://sperner.streamlit.app)** runs this on one
+phone that the flatmates pass around, so that nobody sees the others' answers. To run it
+yourself:
 
 ```bash
 pip install -e ".[app]" && streamlit run streamlit_app.py

@@ -13,8 +13,10 @@ pip install -e ".[app,dev]"
 
 ## Branches
 
-- `main` holds released code, and every release is tagged on it. It is protected: changes
-  arrive only through pull requests that pass CI and CodeQL.
+- `main` holds released code. The web app at
+  [sperner.streamlit.app](https://sperner.streamlit.app) deploys from it, and every
+  release is tagged on it. It is protected: changes arrive only through pull requests that
+  pass CI and CodeQL.
 - `dev` collects the changes for the next release. Branch off `dev` (or fork the
   repository), and open your pull request against `dev`. Pull requests into `dev` are
   squash-merged, so one pull request becomes one commit.

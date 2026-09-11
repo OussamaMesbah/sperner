@@ -18,7 +18,8 @@ API entirely; code written for 0.2 does not run with it.
 - `find_fully_labeled_cell`: an exact Sperner walk on the Freudenthal triangulation in
   pure Python. It asks for labels only along its path and raises `SpernerConditionError`
   for labelings that break the Sperner condition.
-- A web app (`streamlit_app.py`) in which flatmates pass one phone around.
+- A web app (`streamlit_app.py`) in which flatmates pass one phone around, running at
+  [sperner.streamlit.app](https://sperner.streamlit.app).
 - A benchmark of question counts, with a comparison to Spliddit's method when people have
   budgets (`benchmarks/`), and `docs/THEORY.md` on the mathematics and its guarantees.
 
