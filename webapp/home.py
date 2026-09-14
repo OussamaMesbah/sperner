@@ -68,5 +68,8 @@ left, right = st.columns(2)
 with left:
     st.page_link("webapp/hex_game.py", label="The game of Hex", icon="🔷")
     st.caption("Why Hex never ends in a draw, and how that proves Brouwer's theorem.")
+with right:
+    st.page_link("webapp/nash_page.py", label="Nash equilibria", icon="🐈")
+    st.caption("Two cats, one bowl: every game has an equilibrium, and the walk finds it.")
 
 footer()

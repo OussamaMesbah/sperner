@@ -223,3 +223,16 @@ def test_the_hex_page_names_a_winner_and_runs_gale():
         for size in (4, 20):
             app.slider(key="gale-k").set_value(size).run()
             assert not app.exception
+
+
+def test_the_nash_page_computes_every_example():
+    app = page("nash_page")
+    assert "hisses with probability **66.7%**" in app.success[0].value
+    app.slider(key="fight").set_value(2.0).run()
+    assert "always hiss" in app.success[0].value
+    app.slider(key="rock").set_value(2.0).run()
+    assert "rock 25.0%" in app.success[1].value
+    for game in ("Battle of the sexes", "Matching pennies", "Prisoner's dilemma"):
+        app.selectbox(key="bimatrix").set_value(game).run()
+        assert not app.exception
+    assert "Defect 100.0%" in app.success[2].value

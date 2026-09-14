@@ -16,11 +16,16 @@
 - `RentSession.rooms`, `RentSession.people` and `RentSession.rent`.
 - `sperner.walk.cells`, every cell of the triangulation, for drawings and brute-force checks.
 - `sperner.brouwer.fixed_point`: approximate fixed points of continuous maps of a simplex,
-  with the Sperner labeling of Brouwer's theorem and the same refinement as `divide`.
+  with the Sperner labeling of Brouwer's theorem. Each round of refinement restarts with
+  Merrill's method from the affine map through the corners of the last cell, so it also
+  zooms in on fixed points that the map turns around or pushes away from. A budget of
+  moves bounds the work, and the result says whether it reached the tolerance.
+- `sperner.nash`: equilibria of symmetric and of general two-player games, with their
+  regret, and Nash's map for teaching.
 - `sperner.hex`: the Hex theorem as a walk that looks only at the cells along its path
   (`hex_walk`), and Gale's proof of Brouwer's theorem from it (`gale_walk`,
   `gale_fixed_point`).
-- Web pages on Brouwer's fixed-point theorem and on the game of Hex.
+- Web pages on Brouwer's fixed-point theorem, the game of Hex and Nash equilibria.
 - The web app became a site on fixed points and fair division: a start page with a map
   of the theorems, a page on Sperner's lemma with its proof, random colourings and the walk
   step by step, the rent split, and a page where nations divide a valley into territories

@@ -93,6 +93,23 @@ walk.cell.points  # ((200, 499, 301), (199, 500, 301), (199, 499, 302))
 walk.labeled  # 1405 of the grid's 501,501 points
 ```
 
+The same walk proves and computes more:
+
+```python
+from sperner.brouwer import fixed_point
+from sperner.hex import hex_walk
+from sperner.nash import symmetric_equilibrium
+
+# Brouwer: a point that a continuous map of the triangle leaves where it is.
+fixed_point(lambda x: (x[1], x[2], x[0]), 3).point  # (0.333..., 0.333..., 0.333...)
+
+# Hex: who wins a full board, looking only at the cells along one path.
+hex_walk(9, lambda cell: "H" if cell[1] < 4 else "V").winner  # "H"
+
+# Nash: rock, paper, scissors is played uniformly.
+symmetric_equilibrium([[0, -1, 1], [1, 0, -1], [-1, 1, 0]]).strategy  # (0.333..., ...)
+```
+
 [docs/THEORY.md](docs/THEORY.md) states the algorithms, their assumptions and what a result
 guarantees.
 
@@ -183,10 +200,9 @@ three times finer each round.
 
 ## Roadmap
 
-sperner is growing into a toolkit for the constructive fixed-point theorems around
-Sperner's lemma, each with an application and a page in the web app: Brouwer fixed points
-of continuous maps, the game of Hex and Gale's proof of Brouwer's theorem, Nash equilibria,
-and Tucker's lemma with consensus halving, along with notebooks for teaching.
+Brouwer fixed points, the Hex theorem with Gale's proof of Brouwer's theorem, and Nash
+equilibria are in the library and on the web app. Next: Tucker's lemma with consensus
+halving, a page on Arrow's theorem, and notebooks for teaching.
 
 ## Limitations
 
