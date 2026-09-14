@@ -142,7 +142,7 @@ def test_speaking_for_one_nation_ends_in_a_treaty():
     from webapp.territory import NATIONS, borders_of
 
     app = page("land")
-    app.radio(key="mode").set_value("Speak for one nation").run()
+    app.radio(key="_mode").set_value("Speak for one nation").run()
     me = NATIONS[0]
     for _ in range(100):
         if app.session_state["talks"].done:
@@ -158,11 +158,11 @@ def test_speaking_for_one_nation_ends_in_a_treaty():
 
 def test_other_priorities_start_the_talks_afresh():
     app = page("land")
-    app.radio(key="mode").set_value("Speak for one nation").run()
+    app.radio(key="_mode").set_value("Speak for one nation").run()
     first = [b for b in app.button if b.key and b.key.startswith("pick-")][0]
     first.click().run()
     assert app.session_state["talks"].answers
-    app.selectbox(key="me").set_value(1).run()
+    app.selectbox(key="_me").set_value(1).run()
     assert not app.exception
     assert all(q.person != 1 for q in app.session_state["talks"].answers)
 
@@ -172,3 +172,32 @@ def test_a_smaller_triangle_after_a_larger_one_resets_the_walk():
     app.slider(key="size").set_value(12).run()
     app.slider(key="size").set_value(2).run()
     assert not app.exception
+
+
+def test_the_land_settings_survive_a_visit_to_another_page():
+    app = page("land")
+    app.slider(key="_land_precision").set_value(5.0).run()
+    app.radio(key="_mode").set_value("Speak for one nation").run()
+    app.switch_page("webapp/home.py").run()
+    app.switch_page("webapp/land.py").run()
+    assert not app.exception
+    assert app.slider(key="_land_precision").value == 5.0
+    assert app.radio(key="_mode").value == "Speak for one nation"
+
+
+def test_fewer_nations_after_speaking_for_the_last_one():
+    app = page("land")
+    app.slider(key="_count").set_value(4).run()
+    app.radio(key="_mode").set_value("Speak for one nation").run()
+    app.selectbox(key="_me").set_value(3).run()
+    app.slider(key="_count").set_value(2).run()
+    assert not app.exception
+    assert app.selectbox(key="_me").value == 0
+
+
+def test_four_nations_have_names_for_their_territories():
+    app = page("land")
+    app.slider(key="_count").set_value(4).run()
+    assert not app.exception
+    text = " ".join(m.value for m in app.markdown)
+    assert "territory 1 from the west territory" not in text

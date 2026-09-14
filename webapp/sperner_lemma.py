@@ -71,19 +71,23 @@ with right:
 broken = st.checkbox(
     "Break rule 2: let the points on the sides take any colour",
     key="broken",
-    help="The lemma then says nothing, and the walk below runs into a point it cannot use.",
+    help="The lemma then says nothing, and the walk below may run into a point it cannot use.",
 )
 
 seed = st.session_state.get("seed", 0)
 colours = colouring(size, seed, obey_the_rule=not broken)
 found = three_coloured(size, colours)
-svg(triangle_svg(size, cells(3, size), colours, marked=found, corner_names=CORNER_NAMES))
 count = len(found)
+svg(
+    triangle_svg(size, cells(3, size), colours, marked=found, corner_names=CORNER_NAMES),
+    f"A triangle cut into {size**2} small triangles, its corners coloured blue, orange "
+    f"and red; {count} small triangles have all three colours and are shaded green.",
+)
 if broken:
     st.warning(
         f"With rule 2 broken this colouring has **{count}** three-coloured triangles "
         "(green). Nothing forces that number to be odd any more, or even positive: "
-        "reroll a few times and watch it drop to zero."
+        "at 2 or 3 cuts per side, reroll a few times and watch it drop to zero."
     )
 else:
     st.success(
@@ -111,9 +115,10 @@ or leave through another door on the blue–orange side.
 
 The blue–orange side is the same problem one dimension down: it starts blue and ends
 orange, so the colour changes an odd number of times along it and the number of doors
-on it is **odd**. The walks pair those doors up two by two; the leftover one ends at a
-three-coloured triangle. Counting all walks gives the sharper statement: the number of
-three-coloured triangles is odd.
+on it is **odd**. Walks that leave through another side door pair those doors up two by
+two, and an odd number of doors cannot all be paired: at least one walk ends at a
+three-coloured triangle. The other three-coloured triangles are joined in pairs by
+walks that stay inside, so their total number is odd.
 """,
     unsafe_allow_html=True,
 )
@@ -126,8 +131,9 @@ st.subheader("Watch the walk")
 st.markdown(
     "The library starts the walk at the blue corner rather than outside the triangle. "
     "It first walks along the blue–orange side until it meets orange, then climbs into "
-    "the triangle and moves from door to door. It asks for a colour only when it "
-    "reaches a new point, so it never needs the whole colouring."
+    "the triangle and moves from door to door; it may drop back to the side and climb "
+    "in again further along. It asks for a colour only when it reaches a new point, so "
+    "on a fine grid it needs only a small part of the colouring."
 )
 try:
     walk = find_fully_labeled_cell(3, size, lambda p: colours[p], record_path=True)
@@ -149,7 +155,9 @@ else:
             visited=path[: step - 1],
             current=path[step - 1],
             corner_names=CORNER_NAMES,
-        )
+        ),
+        f"The walk after {step} of {len(path)} steps: the cells it has passed are grey, "
+        "the current one is outlined in black.",
     )
     stage = {1: "the blue corner", 2: "an edge on the blue–orange side"}.get(
         len(path[step - 1]), "a small triangle"
@@ -170,10 +178,12 @@ else:
 st.subheader("What it is good for")
 st.markdown(
     "Read the colours as answers instead of decorations. Give each grid point of a "
-    "division to one person and ask them which piece they would take there; their "
-    "answer is the colour. A three-coloured triangle is then a division at which all "
-    "three want different pieces — an envy-free division. That is Francis Su's method, "
-    "and it is what the pages on rent and borders do."
+    "division of a cake to one person and ask them which piece they would take there; "
+    "their answer is the colour. Nobody takes an empty piece, so the colouring obeys "
+    "both rules, and a three-coloured triangle is a division at which all three want "
+    "different pieces — an envy-free division. That is Francis Su's method, and it is "
+    "what the page on borders does. For rent, where everybody takes a free room, the "
+    "answers need renaming first; the rent page does that."
 )
 left, right = st.columns(2)
 with left:
@@ -181,11 +191,13 @@ with left:
 with right:
     st.page_link("webapp/land.py", label="Draw the borders", icon="🗺️")
 st.markdown(
-    "The lemma also proves **Brouwer's fixed-point theorem**: shrink the cuts, colour "
-    "each point by a direction in which a continuous map moves it, and the "
-    "three-coloured triangles converge to a point the map does not move. Through "
-    "Brouwer it reaches Nash equilibria; through Tucker's lemma, its antipodal "
-    "cousin, it reaches ham-sandwich cuts and consensus halving."
+    "The lemma also proves **Brouwer's fixed-point theorem**: colour the point x with a "
+    "colour i such that x<sub>i</sub> > 0 and the map does not increase coordinate i, "
+    "shrink the cuts, and the three-coloured triangles have a subsequence converging to "
+    "a point the map does not move. Through Brouwer it reaches Nash equilibria. Its "
+    "antipodal cousin, Tucker's lemma, is proved by a similar walk and gives "
+    "ham-sandwich cuts and consensus halving.",
+    unsafe_allow_html=True,
 )
 
 with st.expander("For teachers"):
@@ -196,14 +208,17 @@ with st.expander("For teachers"):
 * **Counting.** Count the pairs (small triangle, door of it). Each interior door lies
   in two triangles, each door on the side in one. Deduce that the number of
   three-coloured triangles has the same parity as the number of doors on the side.
-* **The rules matter.** Tick the box that breaks rule 2 and reroll a few colourings
-  until no triangle is three-coloured. Which step of the proof fails?
+* **The rules matter.** Set 2 or 3 cuts per side, tick the box that breaks rule 2 and
+  reroll until no triangle is three-coloured. Which step of the proof fails?
 * **Build the worst case.** Can you colour the grid so that there is exactly one
   three-coloured triangle? Can you get three?
-* **From colours to fairness.** Three flatmates, one rent. Every point of the triangle
-  is a way of pricing three rooms. Ask the owner of a point which room they would take
-  at those prices and colour the point with that room. Why does the colouring obey
+* **From colours to fairness.** Three friends, one cake, cut at two places. Every point
+  of the triangle is a way of cutting it. Ask the owner of a point which piece they
+  would take there and colour the point with that piece. Why does the colouring obey
   rules 1 and 2, and what does a three-coloured triangle mean?
+* **Rent is different.** Now the pieces are shares of the rent, and everybody takes a
+  room that is free. Which rule does the plain colouring break? Show that renaming
+  room r to r − 1 (cyclically) repairs it (Frick, Houston-Edwards and Meunier).
 """
     )
     st.caption(

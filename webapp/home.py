@@ -42,8 +42,11 @@ st.graphviz_chart(
     """
 )
 st.caption(
-    "Blue: theorems. Yellow: what follows from them. An arrow means that one statement "
-    "can be proved from the other."
+    "An arrow A → B means that B can be proved from A. Blue: the fixed-point theorems "
+    "and lemmas at the core. Yellow: theorems and applications proved from them. Arrow's "
+    "theorem is finite combinatorics with short direct proofs; its arrow stands for the "
+    "topological proof of Baryshnikov (1993), which Tanaka showed to be equivalent to "
+    "Brouwer's theorem, and its link to Sperner's lemma (arXiv:2212.12251)."
 )
 
 st.subheader("Try it")

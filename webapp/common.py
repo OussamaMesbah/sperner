@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import math
 from collections.abc import Iterable, Mapping, Sequence
 from html import escape
@@ -133,6 +134,7 @@ def valley_svg(
         f'<svg viewBox="0 0 {width:.0f} 290" xmlns="http://www.w3.org/2000/svg" '
         'style="width:100%;height:auto" role="img" '
         'aria-label="A valley from west to east, divided into territories">',
+        f'<rect width="{width:.0f}" height="290" fill="#fbf8f0"/>',
         f'<defs><clipPath id="land"><path d="{land}"/></clipPath></defs>',
         f'<rect x="0" y="{bottom - 18:.0f}" width="{width:.0f}" height="70" fill="#56B4E9" '
         'fill-opacity="0.25"/>',
@@ -183,9 +185,31 @@ def valley_svg(
     return "".join(parts)
 
 
-def svg(markup: str) -> None:
-    """Show an SVG drawing. ``st.html`` drops SVG, so the drawing goes through images."""
-    st.image(markup, width="stretch")
+def svg(markup: str, description: str) -> None:
+    """Show an SVG drawing, described for screen readers by ``description``.
+
+    ``st.html`` drops SVG, so the drawing goes in as an image.
+    """
+    data = base64.b64encode(markup.encode()).decode()
+    st.markdown(
+        f'<img src="data:image/svg+xml;base64,{data}" alt="{escape(description)}" '
+        'style="width:100%;height:auto">',
+        unsafe_allow_html=True,
+    )
+
+
+def kept(widget, label: str, *args, key: str, default, **kwargs):
+    """A widget whose value survives a visit to another page.
+
+    Streamlit forgets a widget's value when its page is left, so the value is also
+    saved under ``key``, and the widget itself uses the key ``"_" + key``.
+    """
+    shadow = f"_{key}"
+    if shadow not in st.session_state:
+        st.session_state[shadow] = st.session_state.get(key, default)
+    value = widget(label, *args, key=shadow, **kwargs)
+    st.session_state[key] = value
+    return value
 
 
 def footer() -> None:
