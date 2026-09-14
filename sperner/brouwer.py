@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import math
 from collections import deque
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -344,9 +344,10 @@ def _merrill(
 ) -> tuple[tuple[int, ...], ...] | None:
     """A fully labeled cell of ``label`` on the grid of resolution ``size``, found by
     Merrill's restart: the walk starts at ``first`` (base and order in Kuhn
-    coordinates), or else at the fully labeled cell of ``bottom`` found by a search
-    from the point ``start``. It returns ``None`` if the search fails or the walk ends
-    at another fully labeled cell of ``bottom``.
+    coordinates), or else at a fully labeled cell of ``bottom`` found by a search from
+    the point ``start``. If ``bottom`` has several such cells, a walk may end at another
+    one; then the next few found by the search are tried. It returns ``None`` if none
+    of them leads to the top layer.
 
     Vertices of the prism are Kuhn coordinates ``y`` of a grid point (see
     :mod:`sperner.walk`) followed by the layer ``t``, 0 or 1. The Freudenthal
@@ -372,17 +373,39 @@ def _merrill(
             known[v] = value
         return value
 
-    # The start: a fully labeled cell of the bottom layer, found by a search from the
-    # cell that contains the point ``start``.
-    if first is None:
+    if first is not None:
+        starts: Iterator[tuple[list[int], list[int]]] = iter([first])
+    else:
         y = [size * sum(start[m + 1 :]) for m in range(d)]
         base = [min(size, max(0, math.floor(v))) for v in y]
         order = sorted(range(d), key=lambda m: y[m] - base[m], reverse=True)
         colours = lambda cell: {lab((*v, 0)) for v in cell}  # noqa: E731
-        first = _search(base, order, d, inside, colours, max_search)
-        if first is None:
-            return None
-    base, order = [*first[0], 0], [*first[1], top]
+        starts = _search(base, order, d, inside, colours, max_search)
+    dead_ends: set[frozenset[Vertex]] = set()
+    for attempt, (b, o) in enumerate(starts):
+        if attempt == 5:
+            break
+        if frozenset(_corners(b, o)) in dead_ends:
+            continue
+        end = _walk_prism(b, o, d, inside, lab, budget)
+        if end[0] == "top":
+            return tuple(_point(v[:d], size) for v in end[1])
+        dead_ends.add(frozenset(v[:d] for v in end[1]))
+    return None
+
+
+def _walk_prism(
+    base: list[int],
+    order: list[int],
+    d: int,
+    inside: Callable[[Vertex], bool],
+    lab: Callable[[Vertex], int],
+    budget: list[int],
+) -> tuple[str, list[Vertex]]:
+    """Merrill's walk from the bottom cell ``(base, order)`` to the door it leaves by:
+    ``("top", corners)`` or ``("bottom", corners)``."""
+    top = d
+    base, order = [*base, 0], [*order, top]
     corners = _corners(base, order)
     labels = [lab(v) for v in corners]
     new = d + 1  # entered through the bottom cell, opposite the one corner on top
@@ -395,9 +418,9 @@ def _merrill(
         if not inside(corner):
             door = [v for j, v in enumerate(corners) if j != out]
             if all(v[top] == 1 for v in door):
-                return tuple(_point(v[:d], size) for v in door)
+                return "top", door
             if all(v[top] == 0 for v in door):
-                return None  # another fully labeled cell of the bottom layer
+                return "bottom", door  # another fully labeled cell of the bottom layer
             raise AssertionError("Merrill's walk left the prism through a side")
         if out == 0:
             corners, labels = corners[1:] + [corner], labels[1:] + [lab(corner)]
@@ -443,9 +466,9 @@ def _kuhn_pivot(
     return base, order, tuple(corner), index
 
 
-def _search(base, order, d, inside, colours, limit) -> tuple[list[int], list[int]] | None:
-    """Breadth-first search over neighbouring cells of the simplex grid for one whose
-    corners get all ``d + 1`` colours; ``None`` after ``limit`` cells.
+def _search(base, order, d, inside, colours, limit) -> Iterator[tuple[list[int], list[int]]]:
+    """Breadth-first search over neighbouring cells of the simplex grid for those whose
+    corners get all ``d + 1`` colours, nearest first; it gives up after ``limit`` cells.
 
     Cells that stick out of the simplex are passed through but not coloured, so that a
     search starting on the boundary still reaches the cells inside.
@@ -457,7 +480,7 @@ def _search(base, order, d, inside, colours, limit) -> tuple[list[int], list[int
         cell = _corners(list(b), list(o))
         corners_inside = sum(inside((*v, 0)) for v in cell)
         if corners_inside == len(cell) and len(colours(cell)) == d + 1:
-            return list(b), list(o)
+            yield list(b), list(o)
         if corners_inside:  # do not wander away from the simplex
             for out in range(d + 1):
                 nb, no, _, _ = _kuhn_pivot(list(b), list(o), out)
@@ -465,4 +488,3 @@ def _search(base, order, d, inside, colours, limit) -> tuple[list[int], list[int
                 if key not in seen:
                     seen.add(key)
                     queue.append(key)
-    return None
