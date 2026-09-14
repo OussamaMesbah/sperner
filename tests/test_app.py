@@ -13,8 +13,17 @@ ROOMS = ["Big", "Small"]
 MODELS = {"Ana": QuasiLinear((900, 600)), "Ben": QuasiLinear((800, 700))}
 
 
+def page(name, timeout=60):
+    """Run the site and switch to one of its pages."""
+    app = AppTest.from_file(APP, default_timeout=timeout).run()
+    if name != "home":
+        app.switch_page(f"webapp/{name}.py").run()
+    assert not app.exception
+    return app
+
+
 def start(rooms, people, rent=1500, precision=10):
-    app = AppTest.from_file(APP, default_timeout=30).run()
+    app = page("rent", timeout=30)
     app.text_area(key="rooms").input("\n".join(rooms))
     app.text_area(key="people").input("\n".join(people))
     app.number_input(key="rent").set_value(rent)
@@ -92,3 +101,74 @@ def test_the_result_shows_nobodys_answers():
     shown = " ".join(m.value for m in app.markdown)
     assert " picked " not in shown
     assert not app.get("download_button")
+
+
+def test_the_home_page_links_to_the_pages():
+    app = page("home")
+    assert app.title[0].value == "Fixed points and fair division"
+    assert "bachelor's thesis" in app.caption[-1].value
+
+
+def test_every_sperner_colouring_has_an_odd_number_of_three_coloured_triangles():
+    app = page("sperner_lemma")
+    for size in (2, 5, 9):
+        app.slider(key="size").set_value(size).run()
+        for _ in range(3):
+            app.button(key="reroll").click().run()
+            assert not app.exception
+            assert "An odd number" in app.success[0].value
+    assert "The walk ended at a three-coloured triangle" in app.success[1].value
+
+
+def test_breaking_the_rule_stops_the_walk_or_not_but_never_crashes():
+    app = page("sperner_lemma")
+    app.checkbox(key="broken").check().run()
+    for _ in range(6):
+        app.button(key="reroll").click().run()
+        assert not app.exception
+        assert "rule 2 broken" in app.warning[0].value
+
+
+def test_the_nations_negotiate_borders_nobody_would_swap():
+    app = page("land")
+    assert not app.exception
+    assert "nobody would swap" in app.success[0].value or "No nation" in app.success[0].value
+    [question] = [s for s in app.slider if s.key.startswith("proposal-")]
+    question.set_value(3).run()
+    assert not app.exception
+
+
+def test_speaking_for_one_nation_ends_in_a_treaty():
+    from webapp.territory import NATIONS, borders_of
+
+    app = page("land")
+    app.radio(key="mode").set_value("Speak for one nation").run()
+    me = NATIONS[0]
+    for _ in range(100):
+        if app.session_state["talks"].done:
+            break
+        question = app.session_state["talks"].next_question()
+        assert question.person == 0
+        choice = me.choose(borders_of(question.shares))
+        pick = [b for b in app.button if b.key and b.key.startswith("pick-")]
+        next(b for b in pick if b.key.endswith(f"-{choice}")).click().run()
+        assert not app.exception
+    assert app.success[0].value.startswith("Signed.")
+
+
+def test_other_priorities_start_the_talks_afresh():
+    app = page("land")
+    app.radio(key="mode").set_value("Speak for one nation").run()
+    first = [b for b in app.button if b.key and b.key.startswith("pick-")][0]
+    first.click().run()
+    assert app.session_state["talks"].answers
+    app.selectbox(key="me").set_value(1).run()
+    assert not app.exception
+    assert all(q.person != 1 for q in app.session_state["talks"].answers)
+
+
+def test_a_smaller_triangle_after_a_larger_one_resets_the_walk():
+    app = page("sperner_lemma")
+    app.slider(key="size").set_value(12).run()
+    app.slider(key="size").set_value(2).run()
+    assert not app.exception

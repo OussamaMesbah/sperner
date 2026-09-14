@@ -14,6 +14,11 @@
 - An example assistant built with the OpenAI Agents SDK (`examples/agent/rent_agent.py`),
   whose tools are tested without a model.
 - `RentSession.rooms`, `RentSession.people` and `RentSession.rent`.
+- `sperner.walk.cells`, every cell of the triangulation, for drawings and brute-force checks.
+- The web app became a site on fixed points and fair division: a start page with a map
+  of the theorems, a page on Sperner's lemma with its proof, random colourings and the walk
+  step by step, the rent split, and a page where nations divide a valley into territories
+  that none of them would swap. Pages carry exercises for teachers.
 - The benchmark compares methods, and the README presents sperner as a toolkit for
   constructive fixed-point theorems with fair division as its main application.
 
