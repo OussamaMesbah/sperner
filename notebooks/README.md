@@ -1,8 +1,8 @@
 # Notebooks for teaching
 
 Each notebook covers one theorem: the statement, code that checks it or computes with it, and
-exercises. They follow the pages of the [web app](https://sperner.streamlit.app) and need only
-`pip install sperner`.
+exercises. They follow the pages of the [web app](https://sperner.streamlit.app) and need
+sperner 0.4 or later: `pip install "sperner>=0.4"`.
 
 | Notebook | Topic |
 |---|---|
@@ -13,4 +13,4 @@ exercises. They follow the pages of the [web app](https://sperner.streamlit.app)
 | [05_borsuk_ulam](05_borsuk_ulam.ipynb) | Tucker's lemma and two opposite places with the same weather |
 
 The notebooks are saved with their outputs, so they can be read on GitHub without running them.
-The test suite runs every code cell, so the outputs stay true to the library.
+The test suite runs every code cell and checks that it still prints the saved output.

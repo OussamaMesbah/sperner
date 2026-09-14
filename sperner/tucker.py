@@ -140,7 +140,8 @@ class AntipodalPair:
     """Two opposite points of the sphere whose images under ``F`` nearly agree.
 
     Attributes:
-        point: A point of the sphere; the other one is ``-point``.
+        point: A point of the sphere, an end or the middle of the edge; the other point
+            is ``-point``.
         difference: ``F(point) - F(-point)``.
         edge: The complementary edge the point was taken from, in grid points.
         k: The grid had ``2k`` cuts per side.
@@ -163,6 +164,8 @@ def borsuk_ulam_labels(
     is labeled this way and the other half gets the opposite labels, so that the
     labeling is exactly antipodal even where rounding would disturb ``g(-p) = -g(p)``.
     """
+    if k < 1:
+        raise ValueError(f"k must be at least 1, got {k}")
     labels: dict[Point, int] = {}
     for i in range(-k, k + 1):
         for j in range(-k, k + 1):
@@ -186,10 +189,22 @@ def antipodal_pair(
     F: Callable[[tuple[float, float, float]], Sequence[float]], k: int = 64
 ) -> AntipodalPair:
     """Find opposite points of the sphere that the continuous map ``F`` to the plane
-    sends to almost the same place, through Tucker's lemma on a grid with ``2k`` cuts."""
+    sends to almost the same place, through Tucker's lemma on a grid with ``2k`` cuts.
+
+    Of the two ends of the complementary edge and its middle, the point returned is the
+    one whose two images are closest. At the ends, both coordinates of the difference
+    are at most ``2L`` times the length of the edge if ``F`` is ``L``-Lipschitz.
+    """
     labels = borsuk_ulam_labels(F, k)
     u, v = complementary_edge(k, labels.__getitem__)
-    middle = ((u[0] + v[0]) / (2 * k), (u[1] + v[1]) / (2 * k))
-    point = on_sphere(middle)
-    a, b = F(point), F((-point[0], -point[1], -point[2]))
-    return AntipodalPair(point, (a[0] - b[0], a[1] - b[1]), (u, v), k)
+    candidates = [(u[0] / k, u[1] / k), (v[0] / k, v[1] / k)]
+    candidates.append(((u[0] + v[0]) / (2 * k), (u[1] + v[1]) / (2 * k)))
+    best = None
+    for square_point in candidates:
+        point = on_sphere(square_point)
+        a, b = F(point), F((-point[0], -point[1], -point[2]))
+        difference = (a[0] - b[0], a[1] - b[1])
+        if best is None or max(map(abs, difference)) < max(map(abs, best[1])):
+            best = (point, difference)
+    assert best is not None
+    return AntipodalPair(best[0], best[1], (u, v), k)

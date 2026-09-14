@@ -290,13 +290,15 @@ path-following proof of Freund and Todd (1981) is not implemented.
 `antipodal_pair(F, k)` proves and approximates Borsuk–Ulam for `F` from the sphere to the
 plane. A square point at radius `r` (in the maximum norm) in direction `a` goes to the
 point at angle `r · 90°` from the north pole in direction `a`, so the boundary lands on
-the equator and opposite boundary points on opposite points; every edge is shorter than
-`0.7 π / k` on the sphere (measured for `k` up to 128). The point `p` is labeled by the larger coordinate of
+the equator and opposite boundary points on opposite points; every edge spans an arc
+shorter than `π / (√2 k)` on the sphere (the longest are the diagonals next to the axes). The point `p` is labeled by the larger coordinate of
 `g(p) = F(s(p)) - F(-s(p))`, with its sign; one half of the boundary is labeled this way and
 the other half mirrored, so the labeling is exactly antipodal. At the ends of a
 complementary edge, one coordinate of `g` has opposite signs and dominates the other, so
-if `F` is `L`-Lipschitz on the sphere, both coordinates of `g` are at most `2L` times the
-length of the edge there, below `1.4 π L / k`. The result reports `F(point) - F(-point)` at the middle of the edge.
+if `F` is `L`-Lipschitz on the sphere (for arc length), both coordinates of `g` are at most
+`2L` times the length of the edge there, below `√2 π L / k`. The result reports whichever
+of the two ends and the middle of the edge has the smallest difference, so the bound holds
+for it.
 
 ## References
 

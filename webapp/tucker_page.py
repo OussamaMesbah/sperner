@@ -207,19 +207,20 @@ weather.
 st.markdown(
     "Tucker's lemma has a constructive proof by a path through the triangles, like the "
     "door walk for Sperner's lemma (Freund and Todd 1981); this site finds the edge by "
-    "checking all of them. Through a generalisation by Ky Fan, Tucker's lemma implies "
-    "Sperner's lemma directly (Nyman and Su 2013)."
+    "checking all of them. Ky Fan's generalisation of Tucker's lemma (1952) implies "
+    "Sperner's lemma directly (Nyman and Su 2013); no such direct proof from Tucker's "
+    "lemma itself is known."
 )
 
 st.subheader("What it is good for")
 st.markdown(
     """
 * **Ham sandwich.** Bread, ham and cheese, however badly placed, can be halved all at
-  once by one straight cut of a knife (Stone and Tukey 1942; Borsuk–Ulam in three
-  dimensions).
-* **Splitting a necklace.** Two thieves can split a necklace with beads of several
-  kinds fairly between them, with one cut per kind of bead (Goldberg and West 1985,
-  Alon and West 1986).
+  once by one straight cut of a knife (Steinhaus's problem, proved by Banach in 1938
+  from Borsuk–Ulam in three dimensions; Stone and Tukey 1942 in general).
+* **Splitting a necklace.** Two thieves can split an open necklace with an even number
+  of beads of each kind fairly between them, with at most one cut per kind of bead
+  (Goldberg and West 1985, Alon and West 1986).
 * **Consensus halving.** A cake can be cut into pieces and sorted into two piles that
   every one of n people considers equal, with just n cuts (Simmons and Su 2003).
 """
