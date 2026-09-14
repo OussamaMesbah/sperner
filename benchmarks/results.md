@@ -17,6 +17,20 @@ Rent 3000, 200 simulated flats per row.
 | 5 | 10 | 38.7 | 62.8 | 100% | 1.40 |
 | 5 | 3 | 52.8 | 87.0 | 100% | 1.37 |
 
+### Methods compared (precision 10)
+
+Inputs are questions answered, or values reported for Spliddit. The guarantee bounds envy for quasi-linear flatmates: twice the precision reached.
+
+| Method | People | Tolerance | Flats | Inputs per person, mean | 90th percentile | Answers only | Envy, mean | Envy, max | Largest envy / guarantee |
+|---|---|---|---|---|---|---|---|---|---|
+| sperner | 2 | 10 | 200 | 3.9 | 5.0 | 100% | 0.21 | 5.84 | 0.47 |
+| single walk | 2 | 10 | 200 | 69.7 | 88.5 | 100% | 1.10 | 9.92 | 0.50 |
+| divide and choose | 2 | 10 | 200 | 5.0 | 5.0 | 100% | 1.64 | 5.79 | 0.58 |
+| spliddit | 2 | 10 | 200 | 2.0 | 2.0 | 100% | 0.00 | 0.00 | exact |
+| sperner | 3 | 10 | 200 | 12.3 | 17.0 | 100% | 0.57 | 4.05 | 0.49 |
+| single walk | 3 | 10 | 200 | 149.2 | 191.7 | 100% | 2.60 | 9.96 | 0.50 |
+| spliddit | 3 | 10 | 200 | 3.0 | 3.0 | 100% | 0.00 | 0.00 | exact |
+
 ### Three rooms, two flatmates, one newcomer
 
 | Precision | Questions per person, mean | 90th percentile |

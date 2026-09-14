@@ -1,6 +1,55 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-09-15)
+
+sperner grows from fair division into a toolkit for constructive fixed-point theorems, with
+fair division as its main application, a teaching site and notebooks. Nothing from 0.3.0
+was removed or changed in behaviour.
+
+### Added
+
+Library:
+
+- `sperner.brouwer.fixed_point`: approximate fixed points of continuous maps of a simplex,
+  with the Sperner labeling of Brouwer's theorem. Each round of refinement restarts with
+  Merrill's method from the affine map through the corners of the last cell, so it also
+  zooms in on fixed points that the map turns around or pushes away from. A budget of
+  moves bounds the work, and the result says whether it reached the tolerance.
+- `sperner.hex`: the Hex theorem as a walk that looks only at the cells along its path
+  (`hex_walk`), and Gale's proof of Brouwer's theorem from it (`gale_walk`,
+  `gale_fixed_point`).
+- `sperner.nash`: equilibria of symmetric and of general two-player games, with their
+  regret, and Nash's map for teaching.
+- `sperner.tucker`: Tucker's lemma on a symmetrically triangulated square
+  (`complementary_edge`) and the Borsuk–Ulam theorem for maps from the sphere to the
+  plane (`antipodal_pair`).
+- `sperner.experiments`, a testbed that compares methods of fair rent division on
+  simulated flats: sperner's refinement, a single walk without refinement (Su 1999),
+  divide and choose, and Spliddit's method. Seeds are fixed; the results come as a
+  summary table, as CSV and from a command line (`python -m sperner.experiments`).
+- `sperner.chat.RentChat`, a rent split as a chat conversation for bots: every question
+  goes to one person, replies may name the room in words, and the state is JSON.
+  `python -m sperner.chat` plays it in a terminal.
+- `sperner.walk.cells`, every cell of the triangulation, for drawings and brute-force
+  checks, and `RentSession.rooms`, `RentSession.people` and `RentSession.rent`.
+
+Web app:
+
+- The app became a site on fixed points and fair division: a start page with a map of the
+  theorems; pages on Sperner's lemma (colourings, the proof with doors, the walk step by
+  step), Brouwer's theorem, Hex, Nash equilibria, Arrow's theorem and Tucker's lemma with
+  Borsuk–Ulam; the rent split; and a page where nations divide a valley into territories
+  that none of them would swap. Every page has exercises for teachers.
+
+Teaching and research:
+
+- Five notebooks, one per theorem, saved with their outputs; the tests run every cell and
+  compare what it prints.
+- An example assistant built with the OpenAI Agents SDK (`examples/agent/rent_agent.py`),
+  whose tools are tested without a model.
+- `docs/THEORY.md` covers Brouwer fixed points, Hex, Nash equilibria and Tucker's lemma;
+  `benchmarks/equilibria.py` reproduces the convergence of the Nash module on random
+  games, and the rent benchmark compares methods.
 
 ## 0.3.0 (2026-09-11)
 

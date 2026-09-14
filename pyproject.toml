@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sperner"
-version = "0.3.0"
-description = "Envy-free rent division, cake cutting and chore division with Sperner's lemma"
+version = "0.4.0"
+description = "Constructive fixed-point theorems in Python: Sperner, Brouwer, Hex, Nash, Tucker, and envy-free division"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -20,6 +20,10 @@ keywords = [
     "chore-division",
     "sperner-lemma",
     "fixed-point",
+    "brouwer",
+    "nash-equilibrium",
+    "borsuk-ulam",
+    "game-theory",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -36,7 +40,7 @@ dependencies = []
 [project.optional-dependencies]
 app = ["streamlit>=1.40"]
 benchmark = ["numpy>=1.26", "scipy>=1.11"]
-dev = ["numpy>=1.26", "scipy>=1.11", "pytest>=8", "ruff>=0.6"]
+dev = ["numpy>=1.26", "scipy>=1.11", "pytest>=8", "ruff>=0.6", "openai-agents>=0.22"]
 
 [project.urls]
 Repository = "https://github.com/OussamaMesbah/sperner"
@@ -47,6 +51,7 @@ packages = ["sperner"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100

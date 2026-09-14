@@ -1,13 +1,13 @@
 cff-version: 1.2.0
 message: "If you use sperner in research, please cite it as below."
-title: "sperner: envy-free division with Sperner's lemma"
+title: "sperner: constructive fixed-point theorems and envy-free division"
 type: software
 authors:
   - family-names: Mesbah
     given-names: Oussama
 repository-code: "https://github.com/OussamaMesbah/sperner"
-version: 0.3.0
-date-released: 2026-09-11
+version: 0.4.0
+date-released: 2026-09-15
 license: MIT
 keywords:
   - fair division
@@ -15,3 +15,6 @@ keywords:
   - envy-freeness
   - Sperner's lemma
   - cake cutting
+  - Brouwer fixed-point theorem
+  - Nash equilibrium
+  - Borsuk–Ulam theorem

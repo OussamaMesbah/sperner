@@ -140,3 +140,25 @@ def test_a_smooth_labeling_needs_a_small_part_of_a_fine_grid():
     assert max(abs(c - t) for c, t in zip(centroid, target, strict=True)) < 2 / size
     points = (size + 1) * (size + 2) // 2
     assert walk.labeled < points / 50
+
+
+@pytest.mark.parametrize(("n", "size"), [(1, 3), (2, 4), (3, 5), (4, 3)])
+def test_cells_tile_the_simplex(n, size):
+    from sperner.walk import cells
+
+    found = list(cells(n, size))
+    assert len(found) == size ** (n - 1)
+    assert len(set(found)) == len(found)
+    for cell in found:
+        assert len(cell) == n
+        assert all(sum(p) == size and min(p) >= 0 for p in cell)
+
+
+def test_the_walk_ends_in_one_of_the_cells():
+    from sperner.walk import cells
+
+    def label(point):
+        return max(range(3), key=lambda i: (point[i] * (i + 2)) % 7 if point[i] else -1)
+
+    walk = find_fully_labeled_cell(3, 8, label)
+    assert set(walk.cell.points) in [set(cell) for cell in cells(3, 8)]

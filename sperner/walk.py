@@ -24,11 +24,12 @@ direction ``m`` moves one unit from ``x[m]`` to ``x[m + 1]``.
 
 from __future__ import annotations
 
+import itertools
 import operator
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
-__all__ = ["Cell", "SpernerConditionError", "Walk", "find_fully_labeled_cell"]
+__all__ = ["Cell", "SpernerConditionError", "Walk", "cells", "find_fully_labeled_cell"]
 
 Point = tuple[int, ...]
 
@@ -172,6 +173,31 @@ def find_fully_labeled_cell(
         pivots += 1
         if pivots > max_pivots:
             raise RuntimeError(f"no fully labeled cell after {max_pivots} moves")
+
+
+def cells(n: int, size: int) -> Iterator[tuple[Point, ...]]:
+    """Every full-dimensional cell of the triangulation, as a tuple of corners.
+
+    There are ``size ** (n - 1)`` cells. This is for drawing the grid or for checking a
+    labeling by brute force; the walk itself never enumerates cells.
+    """
+    if n < 1 or size < 1:
+        raise ValueError("n and size must be at least 1")
+    d = n - 1
+    if d == 0:
+        yield ((size,),)
+        return
+    for base in itertools.product(range(size + 1), repeat=d):
+        if not _inside(list(base), d, size):
+            continue
+        for order in itertools.permutations(range(d)):
+            corners = [list(base)]
+            for axis in order:
+                step = corners[-1].copy()
+                step[axis] += 1
+                corners.append(step)
+            if all(_inside(c, d, size) for c in corners):
+                yield tuple(_point(tuple(c), size) for c in corners)
 
 
 def _pivot(
