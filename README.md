@@ -27,6 +27,11 @@ only answers *"at these prices, which room would you take?"* (Su 1999).
   measurements of what a fair split costs.
 - **Ready for apps and chat bots.** One question at a time, the state as JSON, a chat
   handler and an example assistant built with the OpenAI Agents SDK.
+- **For learning and teaching.** The web app at
+  [sperner.streamlit.app](https://sperner.streamlit.app) states the lemma, proves it with
+  doors, lets you colour triangles and watch the walk, and applies it: a rent split for
+  your flat, and nations drawing borders through a valley that none of them would swap.
+  Every page has exercises for teachers.
 - **No dependencies.** Pure Python 3.10+.
 
 ## Split the rent
@@ -138,8 +143,8 @@ print(run(random_flats(3, 100), [SpernerRefinement(), equal_split], tolerance=10
 ## Apps and chat bots
 
 `RentSession` asks one question at a time and can be saved as JSON between questions. The
-web app at **[sperner.streamlit.app](https://sperner.streamlit.app)** uses it on one phone
-that the flatmates pass around.
+rent page of the web app at **[sperner.streamlit.app](https://sperner.streamlit.app)** uses
+it on one phone that the flatmates pass around.
 
 `sperner.chat.RentChat` turns a split into a conversation for Telegram, Slack, WhatsApp or
 any other bot framework. Every question is addressed to one person, so a bot can send it
