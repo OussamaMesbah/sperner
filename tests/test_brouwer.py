@@ -70,3 +70,29 @@ def test_arguments_are_checked():
     with pytest.raises(TypeError):
         fixed_point(lambda x: x, 3, factor=2.5)
     assert fixed_point(lambda x: (1.0,), 1).point == (1.0,)
+
+
+def test_a_small_budget_stops_early_and_says_so():
+    result = fixed_point(lambda x: (x[1], x[2], x[0]), 3, tolerance=1e-9, max_moves=5)
+    assert not result.converged
+    assert result.resolution < 1e9
+    assert fixed_point(lambda x: (x[1], x[2], x[0]), 3, tolerance=1e-9).converged
+
+
+def test_a_repelling_fixed_point_costs_no_more_than_an_attracting_one():
+    from sperner.nash import _project
+
+    def spiral(scale):
+        # Turn around the centre and stretch by ``scale``; projected back onto the
+        # triangle, so that the map stays continuous where it would leave it.
+        def f(x):
+            d = [v - 1 / 3 for v in x]
+            turned = [d[1], d[2], d[0]]
+            return _project([1 / 3 + scale * (0.5 * d[i] + 0.5 * turned[i]) for i in range(3)])
+
+        return f
+
+    attracting = fixed_point(spiral(0.8), 3, tolerance=1e-9)
+    repelling = fixed_point(spiral(1.5), 3, tolerance=1e-9)
+    assert attracting.residual < 1e-8 and repelling.residual < 1e-8
+    assert attracting.evaluations < 100 and repelling.evaluations < 100
