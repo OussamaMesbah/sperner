@@ -82,12 +82,15 @@ rps = [[0, -1, bonus], [1, 0, -1], [-bonus, 1, 0]]
 game = symmetric_equilibrium(rps)
 g = nash_map(rps)
 size = 10
-arrows = []
+moves = []
 for a in range(size + 1):
     for b in range(size + 1 - a):
         x = (a / size, b / size, (size - a - b) / size)
-        y = g(list(x))
-        arrows.append((x, tuple(x[i] + 2.5 * (y[i] - x[i]) for i in range(3))))
+        moves.append((x, g(list(x))))
+# Shortened so that the longest arrow is most of a cell long.
+longest = max(max(abs(y[i] - x[i]) for i in range(3)) for x, y in moves)
+scale = 0.8 / (size * longest) if longest else 0.0
+arrows = [(x, tuple(x[i] + scale * (y[i] - x[i]) for i in range(3))) for x, y in moves]
 svg(
     triangle_svg(
         size,
