@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Added
+
+- `sperner.experiments`, a testbed that compares methods of fair rent division on
+  simulated flats: sperner's refinement, a single walk without refinement (Su 1999),
+  divide and choose, and Spliddit's method. Seeds are fixed; the results come as a
+  summary table, as CSV and from a command line (`python -m sperner.experiments`).
+- `sperner.chat.RentChat`, a rent split as a chat conversation for bots: every question
+  goes to one person, replies may name the room in words, and the state is JSON.
+  `python -m sperner.chat` plays it in a terminal.
+- An example assistant built with the OpenAI Agents SDK (`examples/agent/rent_agent.py`),
+  whose tools are tested without a model.
+- `RentSession.rooms`, `RentSession.people` and `RentSession.rent`.
+- The benchmark compares methods, and the README presents sperner as a toolkit for
+  constructive fixed-point theorems with fair division as its main application.
+
 ## 0.3.0 (2026-09-11)
 
 sperner is now a library for envy-free division. It replaces the earlier multi-objective
