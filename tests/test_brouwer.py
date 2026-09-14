@@ -96,3 +96,7 @@ def test_a_repelling_fixed_point_costs_no_more_than_an_attracting_one():
     repelling = fixed_point(spiral(1.5), 3, tolerance=1e-9)
     assert attracting.residual < 1e-8 and repelling.residual < 1e-8
     assert attracting.evaluations < 100 and repelling.evaluations < 100
+
+
+def test_images_a_hair_outside_the_simplex_are_moved_back():
+    assert fixed_point(lambda x: [v * (1 + 1e-8) for v in x], 3, tolerance=1e-3).residual < 1e-6

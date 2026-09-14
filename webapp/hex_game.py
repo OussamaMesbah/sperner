@@ -32,7 +32,7 @@ def square_maps(strength: float):
         )
 
     def squares(z):
-        return (1 - z[1] ** 2, z[0] ** 2)
+        return (1 - strength * z[1] ** 2, strength * z[0] ** 2)
 
     return {"Turn the square": turn, "Waves": wave, "Squares": squares}
 

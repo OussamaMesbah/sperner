@@ -17,8 +17,9 @@ For computing, :func:`symmetric_equilibrium` uses another continuous map with th
 fixed points: take a small step towards the better strategies and project back onto the
 simplex, ``x -> P(x + eta * A x)``. Its fixed points are the ``x`` with
 ``(A x) · (y - x) <= 0`` for every mixed strategy ``y``, which is again the condition for
-an equilibrium. Nash's map has kinks exactly at the equilibrium, where each ``gain[i]``
-starts to grow; the projected map is affine near a typical equilibrium, which lets
+an equilibrium. Nash's map has kinks wherever some strategy does exactly as well as ``x``
+against ``x``, which happens at every mixed equilibrium, where each ``gain[i]`` starts to
+grow; the projected map is affine near a typical equilibrium, which lets
 :func:`sperner.brouwer.fixed_point` zoom in on it with a few dozen evaluations.
 :func:`nash_map` is Nash's original map, for teaching.
 
@@ -130,6 +131,8 @@ def nash_map(payoff: Matrix) -> Callable[[Sequence[float]], list[float]]:
     """Nash's map for a symmetric game: its fixed points are the symmetric equilibria."""
     _check(payoff)
     n = len(payoff)
+    if len(payoff[0]) != n:
+        raise ValueError("a symmetric game needs a square payoff matrix")
 
     def f(x: Sequence[float]) -> list[float]:
         against = [sum(payoff[i][j] * x[j] for j in range(n)) for i in range(n)]
@@ -173,18 +176,19 @@ def equilibrium(row: Matrix, column: Matrix, *, tolerance: float = 1e-9) -> Equi
     _check(row)
     m, n = len(row), len(row[0])
     _check(column, m, n)
-    # Shift the payoffs to be positive; equilibria stay the same. In the symmetric game
-    # a player picks a row strategy or a column strategy; a row strategy against a
-    # column strategy earns the row payoff, and a column strategy against a row
-    # strategy the column payoff. Its symmetric equilibria put weight on both kinds.
-    low = min(v for matrix in (row, column) for r in matrix for v in r)
-    shift = 1 - low
+    # In the symmetric game a player picks a row strategy or a column strategy; a row
+    # strategy against a column strategy earns the row payoff, and a column strategy
+    # against a row strategy the column payoff. With positive payoffs its symmetric
+    # equilibria put weight on both kinds. Each player's payoffs are moved to [1, 2] on
+    # their own: equilibria stay the same, and the two weights stay within a factor of
+    # two of each other, so normalising them does not magnify the walk's error.
+    scaled_row, scaled_column = _rescale(row), _rescale(column)
     size = m + n
     game = [[0.0] * size for _ in range(size)]
     for i in range(m):
         for j in range(n):
-            game[i][m + j] = row[i][j] + shift
-            game[m + j][i] = column[i][j] + shift
+            game[i][m + j] = scaled_row[i][j]
+            game[m + j][i] = scaled_column[i][j]
     found = symmetric_equilibrium(game, tolerance=tolerance)
     z = found.strategy
     x = _normalise(z[:m])
@@ -194,6 +198,14 @@ def equilibrium(row: Matrix, column: Matrix, *, tolerance: float = 1e-9) -> Equi
     best_column = max(sum(column[i][j] * x[i] for i in range(m)) for j in range(n))
     regret = max(best_row - row_value, best_column - column_value)
     return Equilibrium(x, y, (row_value, column_value), regret, found.evaluations, found.converged)
+
+
+def _rescale(matrix: Matrix) -> list[list[float]]:
+    """The payoffs moved affinely onto [1, 2] (all 1 if they are all equal)."""
+    low = min(v for r in matrix for v in r)
+    high = max(v for r in matrix for v in r)
+    spread = high - low or 1.0
+    return [[1 + (v - low) / spread for v in r] for r in matrix]
 
 
 def _normalise(weights: Sequence[float]) -> tuple[float, ...]:

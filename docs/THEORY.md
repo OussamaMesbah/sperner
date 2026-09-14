@@ -263,15 +263,18 @@ and Crowder 1974): `x = P(v)` exactly when `(v - x)·(y - x) <= 0` for all `y`.
 `symmetric_equilibrium` computes with the projected map, because Nash's map has kinks at
 every equilibrium, where the gain of a strategy starts to grow from zero, while the
 projected map is affine near an equilibrium at which the unused strategies do strictly
-worse. `equilibrium(A, B)` solves the symmetric game `[[0, A + s], [B^T + s, 0]]`, with
-`s` making all payoffs positive; if `(x, y)` is a symmetric equilibrium of it, both parts
-are non-zero and, normalised, form an equilibrium of `(A, B)`. Every result reports its
+worse. `equilibrium(A, B)` first moves each player's payoffs affinely onto `[1, 2]`, which
+changes no equilibrium, and solves the symmetric game `[[0, A'], [B'^T, 0]]`; if `(x, y)`
+is a symmetric equilibrium of it, both parts are non-zero and, normalised, form an
+equilibrium of `(A, B)`. Scaling the players separately keeps the weights of `x` and `y`
+within a factor of two, so normalising does not magnify the error of the walk. Every result reports its
 regret, the most a player could gain by switching to a pure strategy.
 
-On 300 random symmetric games with two to seven strategies, 294 walks reach a resolution
+On 300 random symmetric games with two to seven strategies, 293 walks reach a resolution
 of `10^9` within the default budget, with regret below `10^-8`; on 200 random two-player
-games of up to 4 × 4 strategies, 188 do. The others stop with a regret of at most about
-`10^-3` and say so (`converged=False`).
+games of up to 4 × 4 strategies, 186 do. The others stop with a regret of at most about
+`3 · 10^-3` and say so (`converged=False`). Equilibria on the boundary of the simplex are
+the usual cause: there the affine map through the last cell is often a poor guide.
 
 ## References
 

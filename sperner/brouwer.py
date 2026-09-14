@@ -14,14 +14,15 @@ shrink, their centres converge to fixed points.
 
 :func:`fixed_point` finds such a cell on a coarse grid and refines it, three times finer
 per round. Each round uses the restart of Merrill (1972): it walks through the prism
-``simplex × [0, 1]``, triangulated like the grid, whose bottom layer is labeled as if
-``f`` sent everything to the centre ``c`` of the last cell (the first ``i`` with
-``x[i] >= c[i]``) and whose top layer is labeled by ``f``. The bottom layer has exactly
-one fully labeled cell, next to ``c``; the walk starts there and can only end at a fully
-labeled cell of the top layer. Unlike a restart on a small simplex with artificial
-labels on its sides, this never ends at a cell that is fully labeled only because of the
-artificial labels, so it also zooms in on fixed points that push their surroundings
-away. ``f`` is evaluated only at the corners the walks reach.
+``simplex × [0, 1]``, triangulated like the grid, whose top layer is labeled by ``f`` and
+whose bottom layer by a simpler map with a fully labeled cell near the last one. The
+walk enters through that cell and can only leave through a fully labeled cell of the top
+layer. The simpler map is, in this order: the affine map that agrees with ``f`` at the
+corners of the last cell, which matches ``f`` near a smooth fixed point, including one
+that ``f`` turns around or pushes away from; if its start cell cannot be found, a restart
+on a small simplex with artificial labels on its sides; and a constant map, which always
+works but may need many moves. ``f`` is evaluated only at the corners the walks reach.
+docs/THEORY.md states what a result guarantees.
 """
 
 from __future__ import annotations
@@ -76,8 +77,13 @@ class _BrouwerLabeling:
             y = tuple(float(v) for v in self.f(x))
             if len(y) != self.n:
                 raise ValueError(f"f returned {len(y)} coordinates, expected {self.n}")
-            if min(y) < -1e-9 or abs(sum(y) - 1) > 1e-9:
+            # Rounding may leave the image a hair outside the simplex; bring it back.
+            # Anything further out is an error in f.
+            if min(y) < -1e-6 or abs(sum(y) - 1) > 1e-6:
                 raise ValueError(f"f({x}) = {y} is not a point of the simplex")
+            clipped = [max(0.0, v) for v in y]
+            total = sum(clipped)
+            y = tuple(v / total for v in clipped)
             self.values[x] = y
         return y
 
@@ -102,16 +108,19 @@ def fixed_point(
 
     Args:
         f: Takes a point of the simplex with ``n`` coordinates (non-negative, summing to
-            one) and returns one.
+            one) and returns one. Images up to ``1e-6`` outside the simplex, as from
+            rounding, are moved back onto it; further out, ``ValueError`` is raised.
         n: Number of coordinates: ``n = 3`` is a triangle.
         tolerance: The final cell's corners are at most this far apart in each
             coordinate. How far ``f`` moves the result depends on how fast ``f``
             changes; the result reports it as ``residual``.
         factor: Growth of the resolution from one round to the next.
-        max_moves: How many moves from cell to cell the refinement may make in all.
+        max_moves: How many moves Merrill's walks may make in all rounds together.
             Near most fixed points a round takes a few dozen; near some, where ``f``
             has kinks or the fixed point lies on the boundary, a round can take many.
-            When the moves run out, the result has ``converged=False``.
+            When the moves run out, the result has ``converged=False``. The searches
+            and small walks tried before a Merrill walk are not counted; they are
+            bounded by themselves.
 
     Returns:
         The centre of the final cell, how far ``f`` moves it, and the work done.
@@ -138,11 +147,6 @@ def fixed_point(
         def top(p: tuple[int, ...], size: int = size) -> int:
             return labeling.label(p, size)
 
-        found = None
-        affine = _Affine(labeling, cell, coarse)
-        guess = affine.fixed_point()
-        if guess is None:  # no single fixed point nearby: start from the last cell
-            guess = tuple(sum(p[i] for p in cell) / (n * coarse) for i in range(n))
         try:
             found = _next_cell(labeling, cell, coarse, factor, top, budget)
         except _OutOfMoves:
@@ -441,15 +445,20 @@ def _kuhn_pivot(
 
 def _search(base, order, d, inside, colours, limit) -> tuple[list[int], list[int]] | None:
     """Breadth-first search over neighbouring cells of the simplex grid for one whose
-    corners get all ``d + 1`` colours; ``None`` after ``limit`` cells."""
+    corners get all ``d + 1`` colours; ``None`` after ``limit`` cells.
+
+    Cells that stick out of the simplex are passed through but not coloured, so that a
+    search starting on the boundary still reaches the cells inside.
+    """
     first = (tuple(base), tuple(order))
     seen, queue = {first}, deque([first])
     while queue and len(seen) <= limit:
         b, o = queue.popleft()
         cell = _corners(list(b), list(o))
-        if all(inside((*v, 0)) for v in cell):
-            if len(colours(cell)) == d + 1:
-                return list(b), list(o)
+        corners_inside = sum(inside((*v, 0)) for v in cell)
+        if corners_inside == len(cell) and len(colours(cell)) == d + 1:
+            return list(b), list(o)
+        if corners_inside:  # do not wander away from the simplex
             for out in range(d + 1):
                 nb, no, _, _ = _kuhn_pivot(list(b), list(o), out)
                 key = (tuple(nb), tuple(no))

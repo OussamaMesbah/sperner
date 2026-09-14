@@ -66,8 +66,8 @@ if fight > food:
     )
 else:
     st.success(
-        "The food is worth more than a fight costs, so both cats always hiss: hissing "
-        "does better whatever the other cat does."
+        "The food is worth at least as much as a fight costs, so hissing does at least "
+        "as well as waiting whatever the other cat does, and both cats always hiss."
     )
 
 st.subheader("Rock, paper, scissors on the triangle")
@@ -152,8 +152,9 @@ if choice == "Battle of the sexes":
 
 with st.expander("How it is computed"):
     st.markdown(
-        "Nash's map has kinks exactly at the equilibrium, where the gain of a strategy "
-        "starts to grow from zero, and kinks make the zoom slow. The library therefore "
+        "Nash's map has kinks wherever a strategy does exactly as well as the mix "
+        "itself — at a mixed equilibrium, for instance, where the gain of a strategy "
+        "starts to grow from zero — and kinks make the zoom slow. The library therefore "
         "walks on another continuous map with the same fixed points: take a small step "
         "towards the better strategies and project back onto the simplex. Its fixed "
         "points are the strategies x with (Ax)·(y − x) ≤ 0 for every y — again exactly "

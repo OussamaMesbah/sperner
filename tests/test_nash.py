@@ -70,3 +70,17 @@ def test_bad_payoffs_are_rejected():
         equilibrium([[1, 2]], [[1, 2], [3, 4]])
     with pytest.raises(ValueError):
         equilibrium([], [])
+
+
+def test_payoffs_on_different_scales():
+    tiny = equilibrium([[0, 1e-6], [1e-6, 0]], [[1, 0], [0, 1]])
+    assert tiny.converged
+    assert tiny.row == pytest.approx((0.5, 0.5), abs=1e-7)
+    assert tiny.column == pytest.approx((0.5, 0.5), abs=1e-7)
+    large = equilibrium([[0, 1], [1, 0]], [[1000, 0], [0, 1000]])
+    assert large.converged and large.evaluations < 1000
+
+
+def test_nash_map_needs_a_square_matrix():
+    with pytest.raises(ValueError, match="square"):
+        nash_map([[1, 2, 3], [4, 5, 6]])

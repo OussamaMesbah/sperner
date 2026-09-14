@@ -235,21 +235,11 @@ def _walk(labeling: _Labeling, size: int, offset: Point) -> tuple[tuple[Point, .
     return cell, any(artificial(z) for z in walk.cell.points)
 
 
-def _refine(
-    labeling: _Labeling,
-    tolerance: Fraction,
-    factor: int,
-    rounds: list[tuple[int, tuple[Point, ...]]] | None = None,
-) -> tuple[int, tuple[Point, ...]]:
-    """Find a fully labeled cell of a grid with resolution at least ``1 / tolerance``.
-
-    If ``rounds`` is given, the resolution and cell of every round are appended to it.
-    """
+def _refine(labeling: _Labeling, tolerance: Fraction, factor: int) -> tuple[int, tuple[Point, ...]]:
+    """Find a fully labeled cell of a grid with resolution at least ``1 / tolerance``."""
     n = labeling.n
     size = n  # a single point in the interior
     cell, _ = _walk(labeling, size, (0,) * n)
-    if rounds is not None:
-        rounds.append((size, cell))
     while Fraction(1, size) > tolerance:
         finer = size * factor
         low = [min(p[i] for p in cell) for i in range(n)]
@@ -261,8 +251,6 @@ def _refine(
                 break
             margin *= 2
         size, cell = finer, found
-        if rounds is not None:
-            rounds.append((size, cell))
     return size, cell
 
 
