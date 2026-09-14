@@ -278,11 +278,35 @@ within the default budget, with regret below `10^-8`. The others stop with a reg
 `3 · 10^-3` and say so (`converged=False`). Equilibria on the boundary of the simplex are
 the usual cause: there the affine map through the last cell is often a poor guide.
 
+## 13. Tucker and Borsuk–Ulam
+
+`sperner.tucker` triangulates the square `[-1, 1]²` with `2k` cuts per side, splitting
+each small square along the diagonal that points away from the centre, so that `v -> -v`
+maps the triangulation to itself. A Tucker labeling gives each grid point a label in
+`{±1, ±2}` with opposite labels at opposite boundary points; Tucker's lemma gives an edge
+with labels adding up to zero. `complementary_edge` finds one by checking every edge; the
+path-following proof of Freund and Todd (1981) is not implemented.
+
+`antipodal_pair(F, k)` proves and approximates Borsuk–Ulam for `F` from the sphere to the
+plane. A square point at radius `r` (in the maximum norm) in direction `a` goes to the
+point at angle `r · 90°` from the north pole in direction `a`, so the boundary lands on
+the equator and opposite boundary points on opposite points; every edge spans an arc
+shorter than `π / (√2 k)` on the sphere (the longest are the diagonals next to the axes). The point `p` is labeled by the larger coordinate of
+`g(p) = F(s(p)) - F(-s(p))`, with its sign; one half of the boundary is labeled this way and
+the other half mirrored, so the labeling is exactly antipodal. At the ends of a
+complementary edge, one coordinate of `g` has opposite signs and dominates the other, so
+if `F` is `L`-Lipschitz on the sphere (for arc length), both coordinates of `g` are at most
+`2L` times the length of the edge there, below `√2 π L / k`. The result reports whichever
+of the two ends and the middle of the edge has the smallest difference, so the bound holds
+for it.
+
 ## References
 
+- Borsuk, K. (1933). Drei Sätze über die n-dimensionale euklidische Sphäre. *Fundamenta Mathematicae* 20, 177–190.
 - Cohen, D. I. A. (1967). On the Sperner lemma. *Journal of Combinatorial Theory* 2(4), 585–587.
 - Deng, X., Qi, Q., Saberi, A. (2012). Algorithmic solutions for envy-free cake cutting. *Operations Research* 60(6), 1461–1476.
 - Freudenthal, H. (1942). Simpliziale Zerlegungen von beschränkter Flachheit. *Annals of Mathematics* 43(3), 580–582.
+- Freund, R. M., Todd, M. J. (1981). A constructive proof of Tucker's combinatorial lemma. *Journal of Combinatorial Theory, Series A* 30(3), 321–325.
 - Frick, F., Houston-Edwards, K., Meunier, F. (2019). Achieving rental harmony with a secretive roommate. *American Mathematical Monthly* 126(1), 18–32. [arXiv:1702.07325](https://arxiv.org/abs/1702.07325)
 - Gal, Y., Mash, M., Procaccia, A. D., Zick, Y. (2017). Which is the fairest (rent division) of them all? *Journal of the ACM* 64(6), 39.
 - Gale, D. (1979). The game of Hex and the Brouwer fixed-point theorem. *American Mathematical Monthly* 86(10), 818–827.
@@ -293,3 +317,4 @@ the usual cause: there the affine map through the last cell is often a poor guid
 - Papadimitriou, C. H. (1994). On the complexity of the parity argument and other inefficient proofs of existence. *JCSS* 48(3), 498–532.
 - Sperner, E. (1928). Neuer Beweis für die Invarianz der Dimensionszahl und des Gebietes. *Abh. Math. Sem. Hamburg* 6, 265–272.
 - Su, F. E. (1999). Rental harmony: Sperner's lemma in fair division. *American Mathematical Monthly* 106(10), 930–942.
+- Tucker, A. W. (1946). Some topological properties of disk and sphere. *Proceedings of the First Canadian Mathematical Congress*, 285–309.

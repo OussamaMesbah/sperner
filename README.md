@@ -99,6 +99,7 @@ The same walk proves and computes more:
 from sperner.brouwer import fixed_point
 from sperner.hex import hex_walk
 from sperner.nash import symmetric_equilibrium
+from sperner.tucker import antipodal_pair
 
 # Brouwer: a point that a continuous map of the triangle leaves where it is.
 fixed_point(lambda x: (x[1], x[2], x[0]), 3).point  # (0.333..., 0.333..., 0.333...)
@@ -108,6 +109,9 @@ hex_walk(9, lambda cell: "H" if cell[1] < 4 else "V").winner  # "H"
 
 # Nash: rock, paper, scissors is played uniformly.
 symmetric_equilibrium([[0, -1, 1], [1, 0, -1], [-1, 1, 0]]).strategy  # (0.333..., ...)
+
+# Borsuk–Ulam, through Tucker's lemma: opposite points of the sphere with the same image.
+antipodal_pair(lambda p: (p[0] + p[2] ** 2, p[1])).difference  # both close to 0
 ```
 
 [docs/THEORY.md](docs/THEORY.md) states the algorithms, their assumptions and what a result
@@ -200,9 +204,11 @@ three times finer each round.
 
 ## Roadmap
 
-Brouwer fixed points, the Hex theorem with Gale's proof of Brouwer's theorem, and Nash
-equilibria are in the library and on the web app. Next: Tucker's lemma with consensus
-halving, a page on Arrow's theorem, and notebooks for teaching.
+Brouwer fixed points, the Hex theorem with Gale's proof, Nash equilibria and Tucker's lemma
+with the Borsuk–Ulam theorem are in the library and on the web app, together with a page on
+Arrow's theorem and [notebooks for teaching](notebooks/README.md). Next: a path-following
+proof of Tucker's lemma (Freund and Todd 1981), consensus halving, and more than three rooms
+for a newcomer.
 
 ## Limitations
 

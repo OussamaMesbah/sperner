@@ -250,3 +250,14 @@ def test_the_arrow_page_counts_the_ballots_and_finds_each_rules_flaw():
     text = " ".join(m.value for m in app.markdown)
     for axiom in ("a ranking for every profile", "independence of irrelevant", "no dictator"):
         assert f"Breaks {axiom}" in text
+
+
+def test_the_tucker_page_finds_opposite_places_and_a_complementary_edge():
+    app = page("tucker_page")
+    for _ in range(3):
+        app.button(key="reroll").click().run()
+        assert not app.exception
+        assert "hPa" in app.success[0].value
+    for k in (2, 10):
+        app.slider(key="tucker-k").set_value(k).run()
+        assert not app.exception
