@@ -36,7 +36,7 @@ dependencies = []
 [project.optional-dependencies]
 app = ["streamlit>=1.40"]
 benchmark = ["numpy>=1.26", "scipy>=1.11"]
-dev = ["numpy>=1.26", "scipy>=1.11", "pytest>=8", "ruff>=0.6"]
+dev = ["numpy>=1.26", "scipy>=1.11", "pytest>=8", "ruff>=0.6", "openai-agents>=0.22"]
 
 [project.urls]
 Repository = "https://github.com/OussamaMesbah/sperner"

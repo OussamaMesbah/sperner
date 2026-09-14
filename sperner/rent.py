@@ -404,6 +404,18 @@ class RentSession:
         return self._flat.allow_negative
 
     @property
+    def rooms(self) -> tuple[str, ...]:
+        return self._flat.rooms
+
+    @property
+    def people(self) -> tuple[str, ...]:
+        return self._flat.people
+
+    @property
+    def rent(self) -> Decimal:
+        return self._flat.rent
+
+    @property
     def questions_answered(self) -> int:
         return len(self._session.answers)
 
