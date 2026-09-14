@@ -60,6 +60,13 @@ with right:
 left, right = st.columns(2)
 with left:
     st.page_link("webapp/land.py", label="Draw the borders", icon="🗺️")
-    st.caption("Nations on a coast agree on borders that none of them would swap.")
+    st.caption("Nations in a valley agree on borders that none of them would swap.")
+with right:
+    st.page_link("webapp/brouwer.py", label="Brouwer's fixed-point theorem", icon="📍")
+    st.caption("Stir the coffee: some drop stays put. The walk finds it.")
+left, right = st.columns(2)
+with left:
+    st.page_link("webapp/hex_game.py", label="The game of Hex", icon="🔷")
+    st.caption("Why Hex never ends in a draw, and how that proves Brouwer's theorem.")
 
 footer()

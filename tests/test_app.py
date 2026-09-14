@@ -201,3 +201,25 @@ def test_four_nations_have_names_for_their_territories():
     assert not app.exception
     text = " ".join(m.value for m in app.markdown)
     assert "territory 1 from the west territory" not in text
+
+
+@pytest.mark.parametrize("name", ["Three cities", "Turn and pull", "Swirl"])
+def test_the_brouwer_page_finds_a_fixed_point_of_every_map(name):
+    app = page("brouwer")
+    app.selectbox(key="map").set_value(name).run()
+    assert not app.exception
+    moved = next(m for m in app.metric if m.label == "Moved by at most")
+    assert float(moved.value) < 1e-6
+
+
+def test_the_hex_page_names_a_winner_and_runs_gale():
+    app = page("hex_game")
+    for _ in range(3):
+        app.button(key="reroll").click().run()
+        assert not app.exception
+        assert "wins." in app.success[0].value
+    for name in ("Turn the square", "Waves", "Squares"):
+        app.selectbox(key="square-map").set_value(name).run()
+        for size in (4, 20):
+            app.slider(key="gale-k").set_value(size).run()
+            assert not app.exception

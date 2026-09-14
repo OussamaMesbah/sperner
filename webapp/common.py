@@ -47,11 +47,16 @@ def triangle_svg(
     visited: Iterable[tuple[Point, ...]] = (),
     current: tuple[Point, ...] | None = None,
     corner_names: Sequence[str] = (),
+    outlined: Iterable[tuple[Point, ...]] = (),
+    arrows: Iterable[tuple[Sequence[float], Sequence[float]]] = (),
+    star: Sequence[float] | None = None,
 ) -> str:
     """Draw the triangulated triangle with coloured grid points.
 
     ``marked`` cells are filled in green, ``visited`` cells in grey, and ``current`` (a
-    point, an edge or a cell) is outlined in black. Everything else is the grid.
+    point, an edge or a cell) is outlined in black. ``outlined`` cells, of any
+    resolution, are outlined in purple. ``arrows`` run between points given in
+    barycentric coordinates, and ``star`` marks one such point.
     """
     radius = max(3.0, min(9.0, 90 / size))
     width = 2 * _PAD + _SCALE
@@ -68,6 +73,21 @@ def triangle_svg(
         parts.append(_polygon(cell, fill=COLORS[3], fill_opacity="0.45"))
     for cell in cells:
         parts.append(_polygon(cell, fill="none", stroke=GRID, stroke_width="1"))
+    for cell in outlined:
+        parts.append(_polygon(cell, fill="none", stroke=COLORS[4], stroke_width="3"))
+    arrows = list(arrows)
+    if arrows:
+        parts.append(
+            '<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" '
+            'markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" '
+            'fill="#444"/></marker></defs>'
+        )
+    for start, end in arrows:
+        (x1, y1), (x2, y2) = position(start), position(end)
+        parts.append(
+            f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#444" '
+            'stroke-width="1.6" marker-end="url(#head)"/>'
+        )
     if current is not None:
         if len(current) == 1:
             x, y = position(current[0])
@@ -89,6 +109,9 @@ def triangle_svg(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius:.1f}" fill="{COLORS[colour]}" '
             'stroke="white" stroke-width="1.5"/>'
         )
+    if star is not None:
+        x, y = position(star)
+        parts.append(_star(x, y, 16))
     for i, name in enumerate(corner_names):
         corner = tuple(size if j == i else 0 for j in range(3))
         x, y = position(corner)
@@ -97,6 +120,103 @@ def triangle_svg(
             f'<text x="{x:.1f}" y="{y + dy:.1f}" text-anchor="middle" '
             f'font-size="20" font-family="sans-serif" fill="{COLORS[i]}">{escape(name)}</text>'
         )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def _star(x: float, y: float, r: float) -> str:
+    points = []
+    for m in range(10):
+        radius = r if m % 2 == 0 else r * 0.45
+        angle = math.pi / 2 + m * math.pi / 5
+        points.append(f"{x + radius * math.cos(angle):.1f},{y - radius * math.sin(angle):.1f}")
+    return f'<polygon points="{" ".join(points)}" fill="#FFD400" stroke="#111" stroke-width="1.5"/>'
+
+
+def _dark(colour: str) -> bool:
+    """Whether text on this ``#rrggbb`` colour should be white."""
+    r, g, b = (int(colour[i : i + 2], 16) for i in (1, 3, 5))
+    return 0.299 * r + 0.587 * g + 0.114 * b < 140
+
+
+def _hexagon(cx: float, cy: float, r: float, **attributes: object) -> str:
+    corners = " ".join(
+        f"{cx + r * math.cos(math.pi / 6 + m * math.pi / 3):.1f},"
+        f"{cy + r * math.sin(math.pi / 6 + m * math.pi / 3):.1f}"
+        for m in range(6)
+    )
+    extra = " ".join(f'{k.replace("_", "-")}="{v}"' for k, v in attributes.items())
+    return f'<polygon points="{corners}" {extra}/>'
+
+
+def hex_svg(
+    k: int,
+    fills: Mapping[tuple[int, int], str],
+    *,
+    chain: Iterable[tuple[int, int]] = (),
+    walk: Sequence[tuple[tuple[int, int], tuple[int, int]]] = (),
+    star: tuple[int, int] | None = None,
+    frame: tuple[str, str] = (COLORS[0], COLORS[2]),
+    marks: Mapping[tuple[int, int], str] | None = None,
+) -> str:
+    """Draw a Hex board of size ``k`` as a rhombus of hexagons.
+
+    ``fills`` colours board cells (others stay white). The frame is drawn in the two
+    players' colours, ``chain`` cells get a thick outline, ``walk`` is drawn as a line
+    through the edges between its pairs of cells, ``star`` marks one cell and ``marks``
+    writes a short text into cells.
+    """
+    r = 18.0
+    w = math.sqrt(3) * r
+
+    def centre(cell: tuple[int, int]) -> tuple[float, float]:
+        i, j = cell
+        return 40 + w * (i + j / 2 + 1), 40 + 1.5 * r * (j + 1)
+
+    width = 80 + w * (1.5 * k + 2.5)
+    height = 80 + 1.5 * r * (k + 1.4)
+    parts = [
+        f'<svg viewBox="0 0 {width:.0f} {height:.0f}" xmlns="http://www.w3.org/2000/svg" '
+        'style="width:100%;height:auto" role="img" aria-label="A Hex board">'
+    ]
+    for i in range(-1, k + 1):
+        for j in range(-1, k + 1):
+            inside = 0 <= i < k and 0 <= j < k
+            if inside:
+                x, y = centre((i, j))
+                parts.append(
+                    _hexagon(
+                        x, y, r, fill=fills.get((i, j), "#ffffff"), stroke="#555", stroke_width="1"
+                    )
+                )
+            elif (i in (-1, k)) != (j in (-1, k)):
+                colour = frame[0] if i in (-1, k) else frame[1]
+                x, y = centre((i, j))
+                parts.append(_hexagon(x, y, r, fill=colour, fill_opacity="0.25", stroke="none"))
+    for cell in chain:
+        x, y = centre(cell)
+        parts.append(_hexagon(x, y, r - 2, fill="none", stroke="#111", stroke_width="3.5"))
+    if walk:
+        points = []
+        for left, right in walk:
+            (x1, y1), (x2, y2) = centre(left), centre(right)
+            points.append(f"{(x1 + x2) / 2:.1f},{(y1 + y2) / 2:.1f}")
+        parts.append(
+            f'<polyline points="{" ".join(points)}" fill="none" stroke="#FFD400" '
+            'stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>'
+            f'<polyline points="{" ".join(points)}" fill="none" stroke="#111" '
+            'stroke-width="1.5" stroke-linejoin="round"/>'
+        )
+    for cell, text in (marks or {}).items():
+        x, y = centre(cell)
+        ink = "#fff" if _dark(fills.get(cell, "#ffffff")) else "#111"
+        parts.append(
+            f'<text x="{x:.1f}" y="{y + 5:.1f}" text-anchor="middle" font-size="15" '
+            f'font-weight="bold" font-family="sans-serif" fill="{ink}">{escape(text)}</text>'
+        )
+    if star is not None:
+        x, y = centre(star)
+        parts.append(_star(x, y, 13))
     parts.append("</svg>")
     return "".join(parts)
 
