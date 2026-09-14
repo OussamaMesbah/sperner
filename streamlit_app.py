@@ -16,7 +16,13 @@ PAGES = {
     "Start": [
         st.Page("webapp/home.py", title="Fixed points and fair division", icon="🏛️", default=True)
     ],
-    "The mathematics": [st.Page("webapp/sperner_lemma.py", title="Sperner's lemma", icon="🎨")],
+    "The mathematics": [
+        st.Page("webapp/sperner_lemma.py", title="Sperner's lemma", icon="🎨"),
+        st.Page("webapp/brouwer.py", title="Brouwer's fixed-point theorem", icon="📍"),
+        st.Page("webapp/hex_game.py", title="The game of Hex", icon="🔷"),
+        st.Page("webapp/nash_page.py", title="Nash equilibria", icon="🐈"),
+        st.Page("webapp/arrow.py", title="Arrow's theorem", icon="🗳️"),
+    ],
     "Fair division": [
         st.Page("webapp/rent.py", title="Split the rent", icon="🏠"),
         st.Page("webapp/land.py", title="Draw the borders", icon="🗺️"),

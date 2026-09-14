@@ -44,9 +44,10 @@ st.graphviz_chart(
 st.caption(
     "An arrow A → B means that B can be proved from A. Blue: the fixed-point theorems "
     "and lemmas at the core. Yellow: theorems and applications proved from them. Arrow's "
-    "theorem is finite combinatorics with short direct proofs; its arrow stands for the "
-    "topological proof of Baryshnikov (1993), which Tanaka showed to be equivalent to "
-    "Brouwer's theorem, and its link to Sperner's lemma (arXiv:2212.12251)."
+    "theorem is finite combinatorics with short direct proofs; its arrow stands for "
+    "Baryshnikov's topological proof (1993), Tanaka's equivalence of Arrow's theorem "
+    "with Brouwer's theorem in dimension two (2006) and Miku's with Sperner's lemma "
+    "(arXiv:2212.12251)."
 )
 
 st.subheader("Try it")
@@ -60,6 +61,20 @@ with right:
 left, right = st.columns(2)
 with left:
     st.page_link("webapp/land.py", label="Draw the borders", icon="🗺️")
-    st.caption("Nations on a coast agree on borders that none of them would swap.")
+    st.caption("Nations in a valley agree on borders that none of them would swap.")
+with right:
+    st.page_link("webapp/brouwer.py", label="Brouwer's fixed-point theorem", icon="📍")
+    st.caption("Stir the coffee: some drop stays put. The walk finds it.")
+left, right = st.columns(2)
+with left:
+    st.page_link("webapp/hex_game.py", label="The game of Hex", icon="🔷")
+    st.caption("Why Hex never ends in a draw, and how that proves Brouwer's theorem.")
+with right:
+    st.page_link("webapp/nash_page.py", label="Nash equilibria", icon="🐈")
+    st.caption("Two cats, one bowl: every game has an equilibrium, and the walk finds it.")
+left, right = st.columns(2)
+with left:
+    st.page_link("webapp/arrow.py", label="Arrow's theorem", icon="🗳️")
+    st.caption("Why no voting rule on three candidates is fair, with the proof.")
 
 footer()

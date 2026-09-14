@@ -183,6 +183,101 @@ preferences, Deng, Qi and Saberi give an algorithm with a number of queries poly
 whole final grid. Its typical cost is measured in the [benchmark](../benchmarks/results.md),
 and it grows quickly with the number of people.
 
+## 10. Brouwer fixed points
+
+`sperner.brouwer.fixed_point(f, n)` looks for a point of the simplex that a continuous map
+`f` of the simplex to itself barely moves. The grid point `x` gets the first label `i` with
+`x[i] > 0` and `f(x)[i] <= x[i]`. Such an `i` exists because the coordinates of `x` and
+`f(x)` both sum to one, and the rule is a Sperner labeling.
+
+**What a result guarantees.** In a fully labeled cell of resolution `N`, every
+coordinate `i` has a corner at which `f` does not increase it, and the corners differ
+by at most `1/N` in each coordinate. If `|f(y)[i] - f(z)[i]| <= L * max_j |y[j] - z[j]|`,
+then at the centre `x` of the cell every coordinate of `f(x) - x` is at most
+`(L + 1) / N`. They sum to zero, so each is also at least `-(n - 1)(L + 1) / N`, and
+
+    max_i |f(x)[i] - x[i]| <= (n - 1)(L + 1) / N.
+
+The result reports the actual `residual`, which is usually far smaller.
+
+**Refinement.** The first walk runs on the grid of resolution `n`. Each further round
+looks for a fully labeled cell of the grid `factor` times finer, near the last one.
+A restart on a small simplex around the last cell, with artificial labels on its sides
+as in section 5, fails for maps that turn around their fixed point, such as Nash's map
+for rock, paper, scissors: every walk ends at a cell that is fully labeled only because
+of the artificial labels, and the margin grows until the walk covers the whole grid.
+`fixed_point` therefore restarts with the method of Merrill (1972). It walks through the
+prism `simplex × [0, 1]`, triangulated by the Freudenthal triangulation of the lattice in
+Kuhn's coordinates and the layer, which restricts to the prism because its sides lie in
+planes of the form `y[a] = y[b]`, `y[a] = k` and `t = k`. The top layer carries `f`'s
+labels. The bottom layer carries the labels of a simpler map with a fully labeled cell
+near the last cell. The walk enters the prism through that cell and cannot leave through
+the sides, which carry no doors (both layers are Sperner labelings). It ends either at a
+fully labeled cell of the top layer, the result, or at another fully labeled cell of the
+bottom layer, which counts as a failure of that bottom map.
+
+The bottom map is tried in this order:
+
+1. The affine map that agrees with `f` at the corners of the last cell. Near a fixed
+   point where `f` is smooth, it matches `f`, and the walk stays within a few cells.
+   Its fully labeled cells are found by a short search near its fixed point, and the
+   nearest few are tried in turn; the computation uses integer steps and differences of
+   images scaled by `N`, so it stays accurate at resolutions of `10^9`.
+2. If that fails, the restart on a small simplex of section 5.
+3. The constant map to the centre `c` of a cell `{a + e_0, ..., a + e_(n-1)}` next to
+   the last one, labeled by the first `i` with `x[i] >= c[i]`. That cell is its only
+   fully labeled cell, so this always succeeds, but the walk may be long.
+
+A budget of moves (`max_moves`) bounds the work. When it runs out, the refinement stops at
+the last cell found and the result says `converged=False`; its residual is still exact.
+
+## 11. Hex
+
+A full Hex board of size `k` is framed by H cells on the west and east and V cells on the
+north and south. The frame cells `(k, -1)` and `(-1, k)`, which touch the board, count as
+H. `hex_walk` starts between the frame cells `(-1, 0)` and `(0, -1)` and moves along edges
+between an H cell on the left and a V cell on the right. At every corner the third cell
+decides the next edge. The walk never uses an edge twice and ends at another corner of
+the frame: next to the east side, where the H cells on its left form a chain from west to
+east, or next to the south side, where the V cells on its right form one from north to
+south. `winner` checks the result by a search, and the tests compare the two on thousands
+of random boards.
+
+**Gale's proof of Brouwer's theorem.** For a map `f` of the unit square and `eps > 0`,
+the grid point `z` is coloured `H+` or `H-` if `f` moves its first coordinate up or down by
+more than `eps`, and otherwise `V+` or `V-` for the second coordinate. A point without a
+colour is an `eps`-fixed point. An H chain starts on the west edge, where `H-` is
+impossible, and ends on the east edge, where `H+` is impossible, so two neighbours on it
+carry `H+` and `H-`. If `f` is `L`-Lipschitz in the maximum norm and neighbours are at
+most `1/(k - 1)` apart in each coordinate, that needs `(L + 1)/(k - 1) > 2 eps`, so on a
+board with `k - 1 >= (L + 1)/(2 eps)` the walk must meet an `eps`-fixed point.
+`gale_fixed_point` doubles the board until it does. The walk crosses the board, so its
+cost typically grows like `1/eps`, and at worst like `1/eps^2`, the number of cells.
+
+## 12. Nash equilibria
+
+For a symmetric two-player game with payoff matrix `A`, a mixed strategy `x` is a
+symmetric equilibrium if `(Ax)·(y - x) <= 0` for every mixed strategy `y`. These are the
+fixed points of Nash's map (Nash 1951) and also of the projected step
+`x -> P(x + eta * Ax)`, where `P` is the Euclidean projection onto the simplex (Held, Wolfe
+and Crowder 1974): `x = P(v)` exactly when `(v - x)·(y - x) <= 0` for all `y`.
+`symmetric_equilibrium` computes with the projected map, because Nash's map has kinks at
+every equilibrium, where the gain of a strategy starts to grow from zero, while the
+projected map is affine near an equilibrium at which the unused strategies do strictly
+worse. `equilibrium(A, B)` first moves each player's payoffs affinely onto `[1, 2]`, which
+changes no equilibrium, and solves the symmetric game `[[0, A'], [B'^T, 0]]`; if `(x, y)`
+is a symmetric equilibrium of it, both parts are non-zero and, normalised, form an
+equilibrium of `(A, B)`. Scaling the players separately keeps the weights of `x` and `y`
+within a factor of two, so normalising does not magnify the error of the walk. Every result reports its
+regret, the most a player could gain by switching to a pure strategy.
+
+On 300 random symmetric games with two to seven strategies and 200 random two-player
+games of up to 4 × 4 strategies, payoffs uniform in `[-3, 3]`
+(`python -m benchmarks.equilibria`), 293 and 186 walks reach a resolution of `10^9`
+within the default budget, with regret below `10^-8`. The others stop with a regret of at most about
+`3 · 10^-3` and say so (`converged=False`). Equilibria on the boundary of the simplex are
+the usual cause: there the affine map through the last cell is often a poor guide.
+
 ## References
 
 - Cohen, D. I. A. (1967). On the Sperner lemma. *Journal of Combinatorial Theory* 2(4), 585–587.
@@ -190,7 +285,11 @@ and it grows quickly with the number of people.
 - Freudenthal, H. (1942). Simpliziale Zerlegungen von beschränkter Flachheit. *Annals of Mathematics* 43(3), 580–582.
 - Frick, F., Houston-Edwards, K., Meunier, F. (2019). Achieving rental harmony with a secretive roommate. *American Mathematical Monthly* 126(1), 18–32. [arXiv:1702.07325](https://arxiv.org/abs/1702.07325)
 - Gal, Y., Mash, M., Procaccia, A. D., Zick, Y. (2017). Which is the fairest (rent division) of them all? *Journal of the ACM* 64(6), 39.
+- Gale, D. (1979). The game of Hex and the Brouwer fixed-point theorem. *American Mathematical Monthly* 86(10), 818–827.
+- Held, M., Wolfe, P., Crowder, H. P. (1974). Validation of subgradient optimization. *Mathematical Programming* 6, 62–88.
 - Kuhn, H. W. (1968). Simplicial approximation of fixed points. *PNAS* 61(4), 1238–1242.
+- Merrill, O. H. (1972). *Applications and extensions of an algorithm that computes fixed points of certain upper semi-continuous point to set mappings.* PhD thesis, University of Michigan.
+- Nash, J. (1951). Non-cooperative games. *Annals of Mathematics* 54(2), 286–295.
 - Papadimitriou, C. H. (1994). On the complexity of the parity argument and other inefficient proofs of existence. *JCSS* 48(3), 498–532.
 - Sperner, E. (1928). Neuer Beweis für die Invarianz der Dimensionszahl und des Gebietes. *Abh. Math. Sem. Hamburg* 6, 265–272.
 - Su, F. E. (1999). Rental harmony: Sperner's lemma in fair division. *American Mathematical Monthly* 106(10), 930–942.

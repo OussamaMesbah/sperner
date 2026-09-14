@@ -201,3 +201,52 @@ def test_four_nations_have_names_for_their_territories():
     assert not app.exception
     text = " ".join(m.value for m in app.markdown)
     assert "territory 1 from the west territory" not in text
+
+
+@pytest.mark.parametrize("name", ["Three cities", "Turn and pull", "Swirl"])
+def test_the_brouwer_page_finds_a_fixed_point_of_every_map(name):
+    app = page("brouwer")
+    app.selectbox(key="map").set_value(name).run()
+    assert not app.exception
+    moved = next(m for m in app.metric if m.label == "Moved by at most")
+    assert float(moved.value) < 1e-6
+
+
+def test_the_hex_page_names_a_winner_and_runs_gale():
+    app = page("hex_game")
+    for _ in range(3):
+        app.button(key="reroll").click().run()
+        assert not app.exception
+        assert "wins." in app.success[0].value
+    for name in ("Turn the square", "Waves", "Squares"):
+        app.selectbox(key="square-map").set_value(name).run()
+        for size in (4, 20):
+            app.slider(key="gale-k").set_value(size).run()
+            assert not app.exception
+
+
+def test_the_nash_page_computes_every_example():
+    app = page("nash_page")
+    assert "hisses with probability **66.7%**" in app.success[0].value
+    app.slider(key="fight").set_value(2.0).run()
+    assert "always hiss" in app.success[0].value
+    app.slider(key="rock").set_value(2.0).run()
+    assert "rock 25.0%" in app.success[1].value
+    for game in ("Battle of the sexes", "Matching pennies", "Prisoner's dilemma"):
+        app.selectbox(key="bimatrix").set_value(game).run()
+        assert not app.exception
+    assert "Defect 100.0%" in app.success[2].value
+
+
+def test_the_arrow_page_counts_the_ballots_and_finds_each_rules_flaw():
+    app = page("arrow")
+    table = app.table[0].value
+    assert table.loc["Majority", "Society's ranking"] == "a cycle"
+    assert table.loc["Voter 1 decides", "Society's ranking"] == "A > B > C"
+    app.selectbox(key="_ballot-1").set_value("A > B > C").run()
+    app.selectbox(key="_ballot-2").set_value("A > B > C").run()
+    table = app.table[0].value
+    assert table.loc["Majority", "Society's ranking"] == "A > B > C"
+    text = " ".join(m.value for m in app.markdown)
+    for axiom in ("a ranking for every profile", "independence of irrelevant", "no dictator"):
+        assert f"Breaks {axiom}" in text
