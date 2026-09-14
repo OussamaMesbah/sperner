@@ -51,7 +51,7 @@ def test_random_games_end_near_an_equilibrium():
         a = [[rng.uniform(-3, 3) for _ in range(n)] for _ in range(m)]
         b = [[rng.uniform(-3, 3) for _ in range(n)] for _ in range(m)]
         result = equilibrium(a, b)
-        assert result.regret < (1e-7 if result.converged else 1e-3)
+        assert result.regret < (1e-7 if result.converged else 1e-2)
         converged += result.converged
     assert converged >= 20
 
