@@ -22,6 +22,7 @@ PAGES = {
         st.Page("webapp/hex_game.py", title="The game of Hex", icon="🔷"),
         st.Page("webapp/nash_page.py", title="Nash equilibria", icon="🐈"),
         st.Page("webapp/arrow.py", title="Arrow's theorem", icon="🗳️"),
+        st.Page("webapp/tucker_page.py", title="Tucker and Borsuk–Ulam", icon="🌍"),
     ],
     "Fair division": [
         st.Page("webapp/rent.py", title="Split the rent", icon="🏠"),

@@ -76,5 +76,8 @@ left, right = st.columns(2)
 with left:
     st.page_link("webapp/arrow.py", label="Arrow's theorem", icon="🗳️")
     st.caption("Why no voting rule on three candidates is fair, with the proof.")
+with right:
+    st.page_link("webapp/tucker_page.py", label="Tucker and Borsuk–Ulam", icon="🌍")
+    st.caption("Two opposite places on Earth always have the same weather.")
 
 footer()

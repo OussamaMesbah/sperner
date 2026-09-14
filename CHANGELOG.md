@@ -26,6 +26,11 @@
   (`hex_walk`), and Gale's proof of Brouwer's theorem from it (`gale_walk`,
   `gale_fixed_point`).
 - Web pages on Brouwer's fixed-point theorem, the game of Hex and Nash equilibria.
+- `sperner.tucker`: Tucker's lemma on a symmetrically triangulated square
+  (`complementary_edge`) and the Borsuk–Ulam theorem for maps from the sphere to the
+  plane (`antipodal_pair`), with a web page on two opposite places with the same weather.
+- Five notebooks for teaching, one per theorem, saved with their outputs; the tests run
+  every cell.
 - A web page on Arrow's theorem: four voting rules on the same ballots, the axiom each
   breaks found by searching all ballots of three voters, and Geanakoplos's proof.
 - The web app became a site on fixed points and fair division: a start page with a map
