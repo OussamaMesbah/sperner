@@ -71,7 +71,7 @@ def test_custom_methods_without_applies_run_everywhere():
             from sperner.experiments import Outcome
 
             price = flat.rent / flat.n
-            return Outcome(tuple(range(flat.n)), (price,) * flat.n, (0,) * flat.n, 0.0)
+            return Outcome(tuple(range(flat.n)), (price,) * flat.n, (0,) * flat.n, None)
 
     assert len(run(random_flats(2, 4), [Everyone()], 10).rows) == 4
 
@@ -89,3 +89,29 @@ def test_command_line(capsys):
     out = capsys.readouterr().out
     assert "| sperner | 2 | 50 | 3 |" in out
     assert "| divide and choose | 2 | 50 | 3 |" in out
+
+
+def test_the_tolerance_must_be_positive():
+    for tolerance in (0, -5):
+        with pytest.raises(ValueError, match="positive"):
+            run(random_flats(2, 1), [DivideAndChoose()], tolerance)
+
+
+def test_divide_and_choose_stops_when_floats_run_out():
+    rows = run(random_flats(2, 1), [DivideAndChoose()], 1e-13).rows
+    assert len(rows) == 1 and rows[0].inputs < 60
+
+
+def test_a_method_with_a_bound_that_happens_to_be_exact_is_not_called_exact():
+    pytest.importorskip("scipy")
+    from sperner.experiments import Outcome
+
+    class Bounded:
+        name = "bounded"
+
+        def __call__(self, flat, tolerance):
+            exact = SplidditMaximin()(flat, tolerance)
+            return Outcome(exact.assignment, exact.prices, exact.inputs, guarantee=tolerance)
+
+    table = run(random_flats(2, 3), [Bounded()], 10).markdown()
+    assert "| 0.00 |" in table.splitlines()[2]

@@ -16,6 +16,7 @@ Try it in a terminal with ``python -m sperner.chat``.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -29,6 +30,7 @@ HELP = (
     "rent of every room; reply with the number or the name of the room you would take at "
     "those prices. Nobody sees the others' answers. Say 'status' to see where we are."
 )
+_NEGATION = re.compile(r"\b(not|no|never|except|but|rather|instead|don't|dont)\b")
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,8 @@ class RentChat:
             "I'll ask each of you, privately, which room you would take at a few different "
             "prices. Nobody has to put a price on a room. Answer as if the decision were real."
         )
+        if session.done:
+            return [ChatMessage(None, intro), ChatMessage(None, self._result())]
         return [ChatMessage(None, intro), *self._next()]
 
     def handle(self, sender: str, text: str) -> list[ChatMessage]:
@@ -93,6 +97,8 @@ class RentChat:
             return [ChatMessage(sender, self._status())]
         if self._session.done:
             return [ChatMessage(sender, self._result())]
+        if sender not in self._session.people:
+            return [ChatMessage(sender, "This split is only for the flatmates, sorry.")]
         question = self._session.next_question()
         assert question is not None
         if sender != question.person:
@@ -169,16 +175,24 @@ def _ask(question: RentQuestion) -> str:
 
 
 def _parse(text: str, question: RentQuestion) -> str | None:
-    """The room a reply names: its number, its name, or a unique mention of it."""
+    """The room a reply names: its number, its name, or a unique mention of it.
+
+    A reply that is not clear gets ``None``, and the question is asked again: a wrong
+    answer recorded as if it had been given would undo the guarantee.
+    """
     rooms = list(question.prices)
     reply = text.strip().strip(".!").lower()
-    if reply.isdigit():
+    if reply.isdecimal():
         number = int(reply)
         return rooms[number - 1] if 1 <= number <= len(rooms) else None
     for room in rooms:
         if room.lower() == reply:
             return room
-    mentioned = [room for room in rooms if room.lower() in reply]
+    if _NEGATION.search(reply):  # "not the attic", "anything but the attic"
+        return None
+    mentioned = [
+        room for room in rooms if re.search(rf"(?<!\w){re.escape(room.lower())}(?!\w)", reply)
+    ]
     if len(mentioned) == 1:
         return mentioned[0]
     starting = [room for room in rooms if reply and room.lower().startswith(reply)]

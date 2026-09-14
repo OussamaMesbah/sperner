@@ -128,7 +128,7 @@ from sperner.experiments import Outcome, SpernerRefinement, random_flats, run
 
 def equal_split(flat, tolerance):
     price = flat.rent / flat.n
-    return Outcome(tuple(range(flat.n)), (price,) * flat.n, (0,) * flat.n, guarantee=0.0)
+    return Outcome(tuple(range(flat.n)), (price,) * flat.n, (0,) * flat.n, guarantee=None)
 
 
 equal_split.name = "equal split"

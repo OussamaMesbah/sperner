@@ -100,3 +100,31 @@ def test_after_the_end_the_result_is_repeated():
     converse(chat, MODELS, ROOMS, chat.start()[1:])
     [reply] = chat.handle("Ana", "1")
     assert reply.to == "Ana" and reply.text.startswith("Done!")
+
+
+def test_unclear_mentions_are_not_guessed():
+    question = RentQuestion("Ana", {"Attic": Decimal("750"), "Basement": Decimal("750")})
+    assert _parse("the attic please", question) == "Attic"
+    assert _parse("not the attic", question) is None
+    assert _parse("anything but the attic", question) is None
+    short = RentQuestion("Ana", {"A": Decimal("750"), "B": Decimal("750")})
+    assert _parse("the cheaper one", short) is None
+    assert _parse("whatever is cheapest", short) is None
+    assert _parse("B please", short) == "B"
+    assert _parse("²", short) is None
+
+
+def test_starting_a_finished_conversation_repeats_the_result():
+    chat = RentChat(ROOMS, 1500, list(MODELS), tolerance=50)
+    converse(chat, MODELS, ROOMS, chat.start()[1:])
+    intro, result = RentChat.from_json(chat.to_json()).start()
+    assert intro.to is None and result.to is None
+    assert result.text.startswith("Done!")
+
+
+def test_somebody_outside_the_flat_is_told_so():
+    chat = RentChat(ROOMS, 1500, list(MODELS))
+    chat.start()
+    [reply] = chat.handle("Carla", "1")
+    assert reply.to == "Carla" and "only for the flatmates" in reply.text
+    assert chat.session.questions_answered == 0

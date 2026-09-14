@@ -103,8 +103,8 @@ class Outcome:
         assignment: ``assignment[person]`` is that person's room.
         prices: The rent of each room.
         inputs: Questions answered, or values reported, by each person.
-        guarantee: The method's bound on envy, in money, for quasi-linear flatmates;
-            zero for methods that are exact.
+        guarantee: The method's bound on envy, in money, for quasi-linear flatmates:
+            zero for a method that is exact, ``None`` for a method without a bound.
         rests_on_answers: ``False`` if the result uses a choice that was assumed rather
             than asked.
     """
@@ -112,7 +112,7 @@ class Outcome:
     assignment: tuple[int, ...]
     prices: tuple[float, ...]
     inputs: tuple[int, ...]
-    guarantee: float
+    guarantee: float | None
     rests_on_answers: bool = True
 
 
@@ -202,6 +202,8 @@ class DivideAndChoose:
         asked, seen = 0, set()
         while high - low > tolerance:
             middle = (low + high) / 2
+            if middle in (low, high):  # no float left in between
+                break
             choice = first.choose([middle, flat.rent - middle])
             asked += 1
             seen.add(choice)
@@ -254,7 +256,7 @@ class Row:
     flat: int
     inputs: float
     envy: float
-    guarantee: float
+    guarantee: float | None
     rests_on_answers: bool
 
 
@@ -271,7 +273,14 @@ class Results:
         summary = []
         for (method, people, tolerance), rows in groups.items():
             inputs = sorted(r.inputs for r in rows)
-            ratios = [r.envy / r.guarantee for r in rows if r.guarantee > 0]
+            bounds = {r.guarantee for r in rows}
+            ratios = [r.envy / r.guarantee for r in rows if r.guarantee]
+            if None in bounds:
+                bound = "none"
+            elif bounds == {0}:
+                bound = "exact"
+            else:
+                bound = "bounded"
             summary.append(
                 {
                     "method": method,
@@ -283,7 +292,8 @@ class Results:
                     "answers_only": sum(r.rests_on_answers for r in rows) / len(rows),
                     "envy_mean": statistics.mean(r.envy for r in rows),
                     "envy_max": max(r.envy for r in rows),
-                    "envy_over_guarantee": max(ratios) if ratios else 0.0,
+                    "guarantee": bound,
+                    "envy_over_guarantee": max(ratios) if bound == "bounded" else None,
                 }
             )
         return summary
@@ -295,10 +305,12 @@ class Results:
             "|---|---|---|---|---|---|---|---|---|---|",
         ]
         for s in self.summary():
-            if s["envy_over_guarantee"]:
-                ratio = f"{s['envy_over_guarantee']:.2f}"
+            if s["guarantee"] == "exact":
+                ratio = "exact"
+            elif s["guarantee"] == "none":
+                ratio = "no guarantee"
             else:
-                ratio = "exact" if s["envy_max"] < 1e-6 else "no guarantee"
+                ratio = f"{s['envy_over_guarantee']:.2f}"
             lines.append(
                 f"| {s['method']} | {s['people']} | {s['tolerance']:g} | {s['flats']} "
                 f"| {s['inputs_mean']:.1f} | {s['inputs_p90']:.1f} | {s['answers_only']:.0%} "
@@ -315,6 +327,8 @@ class Results:
 
 def run(flats: Sequence[Flat], methods: Iterable, tolerance: float) -> Results:
     """Run every method on every flat it applies to and measure the envy that remains."""
+    if not tolerance > 0:
+        raise ValueError(f"tolerance must be positive, got {tolerance}")
     rows = []
     for method in methods:
         applies = getattr(method, "applies", lambda flat: True)
