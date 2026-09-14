@@ -25,7 +25,8 @@ st.markdown(
 )
 st.markdown(AXIOMS)
 st.info(
-    "**Arrow (1951).** With at least three candidates, no voting rule satisfies all four.",
+    "**Arrow (1951, 1963), in its modern form.** With finitely many voters and at "
+    "least three candidates, no voting rule satisfies all four.",
     icon="🗳️",
 )
 
@@ -93,8 +94,8 @@ Contradiction.
 **Step 2: a pivotal voter.** Start with every voter putting B last; by unanimity
 society puts B last. Now move B to the top of voter 1's ranking, then voter 2's, and
 so on. By step 1, society keeps B at the top or at the bottom, and once every voter has
-B first, at the top. Let voter *n* be the one whose move sends B from the bottom of
-society's ranking to the top.
+B first, at the top. Let voter *n* be the first voter whose move sends B from the
+bottom of society's ranking to the top. (Here the number of voters must be finite.)
 
 **Step 3: voter n decides every pair without B.** Take A and C other than B and any
 ballots on which voter *n* ranks A above C. Change them so that voter *n* puts B between
@@ -104,24 +105,27 @@ voter *n*'s move, when society had B last: so society ranks A above B. On B agai
 everybody compares as just after the move, when society had B first: so society ranks
 B above C. Hence society ranks A above C — whatever the others think of A and C.
 
-**Step 4: and the pairs with B.** Repeat steps 2 and 3 with another candidate C in the
-role of B: some voter decides every pair without C, among them A against B. But voter
-*n* alone flipped society's verdict on A against B in step 2, while every other
-voter's ballot stayed the same. So that voter is *n*, and *n* is a dictator.
+**Step 4: and the pairs with B.** Repeat steps 2 and 3 with any candidate X other than
+B in the role of B: some voter *m* decides every pair without X. Take a candidate A
+other than B and X; then *m* decides A against B. But in step 2 voter *n*'s move alone
+flipped society's verdict on A against B, while every other voter's ballot stayed the
+same, so *m* is *n*. Every pair of candidates leaves out some X, so *n* decides every
+pair: *n* is a dictator.
 """
 )
 st.caption(
-    "With two candidates, majority voting satisfies everything: step 1 needs a third "
-    "candidate to move."
+    "With two candidates and at least two voters, majority voting satisfies "
+    "everything: steps 3 and 4 need two candidates besides B."
 )
 
 st.subheader("And Sperner's lemma?")
 st.markdown(
     "The proof above is pure combinatorics, and Arrow's theorem needs nothing more. It "
     "also has a topological side. Chichilnisky (1980) studied social choice on spaces "
-    "of preferences, Baryshnikov (1993) gave a proof of Arrow's theorem through "
-    "homology that Tanaka showed to be equivalent to Brouwer's theorem, and a recent "
-    "paper relates Arrow's theorem to Sperner's lemma directly "
+    "of preferences, and Baryshnikov (1993) proved Arrow's theorem with homology. "
+    "Building on this, Tanaka (2006) showed Arrow's theorem to be equivalent to "
+    "Brouwer's fixed-point theorem in dimension two, and Miku (2022) proves its "
+    "equivalence with Sperner's lemma directly "
     "([arXiv:2212.12251](https://arxiv.org/abs/2212.12251)). Loosely, the pivotal "
     "voter plays the part of the three-coloured triangle: a place where something has "
     "to switch, found by walking."

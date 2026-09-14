@@ -210,18 +210,19 @@ of the artificial labels, and the margin grows until the walk covers the whole g
 prism `simplex × [0, 1]`, triangulated by the Freudenthal triangulation of the lattice in
 Kuhn's coordinates and the layer, which restricts to the prism because its sides lie in
 planes of the form `y[a] = y[b]`, `y[a] = k` and `t = k`. The top layer carries `f`'s
-labels. The bottom layer carries the labels of a simpler map with one fully labeled cell
-near the last cell. The walk enters the prism through that cell and can leave it only
-through a fully labeled cell of the top layer, because the sides of the prism carry no
-doors (both layers are Sperner labelings).
+labels. The bottom layer carries the labels of a simpler map with a fully labeled cell
+near the last cell. The walk enters the prism through that cell and cannot leave through
+the sides, which carry no doors (both layers are Sperner labelings). It ends either at a
+fully labeled cell of the top layer, the result, or at another fully labeled cell of the
+bottom layer, which counts as a failure of that bottom map.
 
 The bottom map is tried in this order:
 
 1. The affine map that agrees with `f` at the corners of the last cell. Near a fixed
    point where `f` is smooth, it matches `f`, and the walk stays within a few cells.
-   Its fully labeled cell is found by a short search near its fixed point; the
-   computation uses integer steps and differences of images scaled by `N`, so it stays
-   accurate at resolutions of `10^9`.
+   Its fully labeled cells are found by a short search near its fixed point, and the
+   nearest few are tried in turn; the computation uses integer steps and differences of
+   images scaled by `N`, so it stays accurate at resolutions of `10^9`.
 2. If that fails, the restart on a small simplex of section 5.
 3. The constant map to the centre `c` of a cell `{a + e_0, ..., a + e_(n-1)}` next to
    the last one, labeled by the first `i` with `x[i] >= c[i]`. That cell is its only
@@ -251,7 +252,7 @@ carry `H+` and `H-`. If `f` is `L`-Lipschitz in the maximum norm and neighbours 
 most `1/(k - 1)` apart in each coordinate, that needs `(L + 1)/(k - 1) > 2 eps`, so on a
 board with `k - 1 >= (L + 1)/(2 eps)` the walk must meet an `eps`-fixed point.
 `gale_fixed_point` doubles the board until it does. The walk crosses the board, so its
-cost grows like `1/eps`.
+cost typically grows like `1/eps`, and at worst like `1/eps^2`, the number of cells.
 
 ## 12. Nash equilibria
 
@@ -270,9 +271,10 @@ equilibrium of `(A, B)`. Scaling the players separately keeps the weights of `x`
 within a factor of two, so normalising does not magnify the error of the walk. Every result reports its
 regret, the most a player could gain by switching to a pure strategy.
 
-On 300 random symmetric games with two to seven strategies, 293 walks reach a resolution
-of `10^9` within the default budget, with regret below `10^-8`; on 200 random two-player
-games of up to 4 × 4 strategies, 186 do. The others stop with a regret of at most about
+On 300 random symmetric games with two to seven strategies and 200 random two-player
+games of up to 4 × 4 strategies, payoffs uniform in `[-3, 3]`
+(`python -m benchmarks.equilibria`), 293 and 186 walks reach a resolution of `10^9`
+within the default budget, with regret below `10^-8`. The others stop with a regret of at most about
 `3 · 10^-3` and say so (`converged=False`). Equilibria on the boundary of the simplex are
 the usual cause: there the affine map through the last cell is often a poor guide.
 
@@ -284,7 +286,6 @@ the usual cause: there the affine map through the last cell is often a poor guid
 - Frick, F., Houston-Edwards, K., Meunier, F. (2019). Achieving rental harmony with a secretive roommate. *American Mathematical Monthly* 126(1), 18–32. [arXiv:1702.07325](https://arxiv.org/abs/1702.07325)
 - Gal, Y., Mash, M., Procaccia, A. D., Zick, Y. (2017). Which is the fairest (rent division) of them all? *Journal of the ACM* 64(6), 39.
 - Gale, D. (1979). The game of Hex and the Brouwer fixed-point theorem. *American Mathematical Monthly* 86(10), 818–827.
-- Geanakoplos, J. (2005). Three brief proofs of Arrow's impossibility theorem. *Economic Theory* 26(1), 211–215.
 - Held, M., Wolfe, P., Crowder, H. P. (1974). Validation of subgradient optimization. *Mathematical Programming* 6, 62–88.
 - Kuhn, H. W. (1968). Simplicial approximation of fixed points. *PNAS* 61(4), 1238–1242.
 - Merrill, O. H. (1972). *Applications and extensions of an algorithm that computes fixed points of certain upper semi-continuous point to set mappings.* PhD thesis, University of Michigan.
