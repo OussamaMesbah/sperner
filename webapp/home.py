@@ -71,5 +71,9 @@ with left:
 with right:
     st.page_link("webapp/nash_page.py", label="Nash equilibria", icon="🐈")
     st.caption("Two cats, one bowl: every game has an equilibrium, and the walk finds it.")
+left, right = st.columns(2)
+with left:
+    st.page_link("webapp/arrow.py", label="Arrow's theorem", icon="🗳️")
+    st.caption("Why no voting rule on three candidates is fair, with the proof.")
 
 footer()

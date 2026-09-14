@@ -26,6 +26,8 @@
   (`hex_walk`), and Gale's proof of Brouwer's theorem from it (`gale_walk`,
   `gale_fixed_point`).
 - Web pages on Brouwer's fixed-point theorem, the game of Hex and Nash equilibria.
+- A web page on Arrow's theorem: four voting rules on the same ballots, the axiom each
+  breaks found by searching all ballots of three voters, and Geanakoplos's proof.
 - The web app became a site on fixed points and fair division: a start page with a map
   of the theorems, a page on Sperner's lemma with its proof, random colourings and the walk
   step by step, the rent split, and a page where nations divide a valley into territories

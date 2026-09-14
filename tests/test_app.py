@@ -236,3 +236,17 @@ def test_the_nash_page_computes_every_example():
         app.selectbox(key="bimatrix").set_value(game).run()
         assert not app.exception
     assert "Defect 100.0%" in app.success[2].value
+
+
+def test_the_arrow_page_counts_the_ballots_and_finds_each_rules_flaw():
+    app = page("arrow")
+    table = app.table[0].value
+    assert table.loc["Majority", "Society's ranking"] == "a cycle"
+    assert table.loc["Voter 1 decides", "Society's ranking"] == "A > B > C"
+    app.selectbox(key="_ballot-1").set_value("A > B > C").run()
+    app.selectbox(key="_ballot-2").set_value("A > B > C").run()
+    table = app.table[0].value
+    assert table.loc["Majority", "Society's ranking"] == "A > B > C"
+    text = " ".join(m.value for m in app.markdown)
+    for axiom in ("a ranking for every profile", "independence of irrelevant", "no dictator"):
+        assert f"Breaks {axiom}" in text

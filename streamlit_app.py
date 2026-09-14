@@ -21,6 +21,7 @@ PAGES = {
         st.Page("webapp/brouwer.py", title="Brouwer's fixed-point theorem", icon="📍"),
         st.Page("webapp/hex_game.py", title="The game of Hex", icon="🔷"),
         st.Page("webapp/nash_page.py", title="Nash equilibria", icon="🐈"),
+        st.Page("webapp/arrow.py", title="Arrow's theorem", icon="🗳️"),
     ],
     "Fair division": [
         st.Page("webapp/rent.py", title="Split the rent", icon="🏠"),
