@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sperner"
-version = "0.4.0"
+version = "0.4.1"
 description = "Constructive fixed-point theorems in Python: Sperner, Brouwer, Hex, Nash, Tucker, and envy-free division"
 readme = "README.md"
 requires-python = ">=3.10"
