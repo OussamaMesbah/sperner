@@ -8,7 +8,9 @@ import random
 import streamlit as st
 
 from sperner.hex import gale_fixed_point, gale_walk, hex_walk
-from webapp.common import COLORS, footer, hex_svg, svg
+from webapp.common import COLORS, footer, hex_svg
+from webapp.figure import figure
+from webapp.steps import describe_turns, describe_walk
 
 BLUE, RED = COLORS[0], COLORS[2]
 SHADES = {"H+": "#0b5a8f", "H-": "#8cc4ea", "V+": "#b34700", "V-": "#f3b58c"}
@@ -63,26 +65,31 @@ if st.button("New board", key="reroll", type="primary"):
 seed = st.session_state.get("hex_seed", 0)
 rng = random.Random(f"{seed}:{k}:{share}")
 board = {(i, j): "H" if rng.random() < share else "V" for i in range(k) for j in range(k)}
+# Hexagons the reader has flipped by clicking, for this board only.
+flipped = st.session_state.setdefault("flipped", {}).setdefault((seed, k, share), set())
+for cell in flipped:
+    board[cell] = "V" if board[cell] == "H" else "H"
 walk = hex_walk(k, lambda cell: board[cell])
-step = st.slider(
-    "Steps of the walk", 1, len(walk.path), len(walk.path), key=f"step-{seed}-{k}-{share}"
-)
 fills = {cell: BLUE if colour == "H" else RED for cell, colour in board.items()}
-done = step == len(walk.path)
-svg(
-    hex_svg(k, fills, walk=walk.path[:step], chain=walk.chain if done else ()),
-    f"A full Hex board of size {k} with blue and red hexagons. The walk runs from the "
-    f"north-west corner along the edges between the colours"
-    + (f"; {'blue' if walk.winner == 'H' else 'red'} wins." if done else "."),
-)
 who = "Blue" if walk.winner == "H" else "Red"
-if done:
-    st.success(
-        f"**{who} wins.** The walk looked at {walk.looked_at} of the {k * k} hexagons; "
-        f"the {who.lower()} hexagons along it contain the winning chain (outlined)."
-    )
-else:
-    st.caption(f"Step {step} of {len(walk.path)}.")
+clicked = figure(
+    hex_svg(k, fills, walk=walk.path, chain=walk.chain, clickable=True),
+    key=f"board-{seed}-{k}-{share}-{hash(frozenset(flipped))}",
+    description=f"A full Hex board of size {k} with blue and red hexagons. The walk runs "
+    f"from the north-west corner along the edges between the colours; {who.lower()} wins.",
+    steps=len(walk.path) - 1,
+    captions=describe_walk(walk, k),
+    hint="Press ▶ to watch the walk. Click a hexagon to flip its colour; the walk follows.",
+    interval=300,
+)
+if clicked:
+    cell = tuple(int(v) for v in clicked.split(","))
+    flipped ^= {cell}
+    st.rerun()
+st.success(
+    f"**{who} wins.** The walk looked at {walk.looked_at} of the {k * k} hexagons; "
+    f"the {who.lower()} hexagons along it contain the winning chain (outlined in white)."
+)
 
 st.subheader("Why somebody wins")
 st.markdown(
@@ -90,19 +97,19 @@ st.markdown(
 Put a frame around the board: blue hexagons along the west and east, red ones along the
 north and south. Start at the north-west corner, on the edge between the blue frame and
 the red frame, and walk along the edges of the hexagons, **always with blue on your
-left and red on your right**.
+right and red on your left**.
 
 Every corner of a hexagon is shared by three hexagons. When you reach a corner, two of
 them are the ones on your left and right; the third, straight ahead, decides the way:
-if it is blue, you turn right; if it is red, you turn left. Either way you keep blue on
-the left and red on the right.
+if it is blue, you turn left; if it is red, you turn right. Either way you keep blue on
+the right and red on the left.
 
 You cannot come back to an edge you have walked, because the colours on either side
 fix the direction in which it is walked, and the edge before it is fixed the same way.
 The board is finite, so the walk must end — and it can only end where the frame
 leaves no edge to continue on: at another corner of the frame. The blue hexagons on
-your left then form one connected chain, from the west frame to wherever you stopped,
-and so do the red ones on your right. Ending at the north-east corner means blue has
+your right then form one connected chain, from the west frame to wherever you stopped,
+and so do the red ones on your left. Ending at the north-east corner means blue has
 reached the east; ending at the south-west corner means red has reached the south.
 """
 )
@@ -155,11 +162,19 @@ for i in range(size):
             everything[(i, j)] = "V+" if d[1] > 0 else "V-"
 fills = {cell: SHADES[colour] for cell, colour in everything.items()}
 marks = {cell: colour[1].replace("-", "−") for cell, colour in everything.items()}
+gale_steps = max(len(gale.path) - 1, 0)
+gale_captions = describe_turns(gale.path) if gale.path else [""]
 if gale.found is not None:
-    svg(
+    gale_captions[-1] += " The next hexagon has no colour: the map moves it by at most ε."
+    figure(
         hex_svg(size, fills, walk=gale.path, star=gale.found, marks=marks),
-        f"Gale's colouring of a board of size {size}; the walk stops at the starred cell, "
-        "which the map moves by at most ε.",
+        key=f"gale-{name}-{strength}-{eps}-{size}",
+        description=f"Gale's colouring of a board of size {size}; the walk stops at the "
+        "starred cell, which the map moves by at most ε.",
+        steps=gale_steps,
+        captions=gale_captions,
+        hint="Press ▶ to watch the Hex walk run into a nearly fixed point.",
+        interval=300,
     )
     x, y = gale.found[0] / (size - 1), gale.found[1] / (size - 1)
     st.success(
@@ -170,10 +185,16 @@ if gale.found is not None:
     )
 else:
     clash = gale.clash or ()
-    svg(
+    gale_captions[-1] += " The walk got through: two neighbours of the chain clash (white)."
+    figure(
         hex_svg(size, fills, walk=gale.path, chain=clash, marks=marks),
-        f"Gale's colouring of a board of size {size}; the walk gets through, and two "
-        "neighbouring cells with opposite signs are outlined.",
+        key=f"gale-{name}-{strength}-{eps}-{size}",
+        description=f"Gale's colouring of a board of size {size}; the walk gets through, and "
+        "two neighbouring cells with opposite signs are outlined.",
+        steps=gale_steps,
+        captions=gale_captions,
+        hint="Press ▶ to watch the Hex walk.",
+        interval=300,
     )
     kind = "H+ next to H−" if gale.hex and gale.hex.winner == "H" else "V+ next to V−"
     st.warning(
@@ -202,7 +223,7 @@ with st.expander("For teachers"):
 * **First player wins.** Show that on a full board a draw is impossible, then use
   strategy stealing to show that the first player has a winning strategy — without
   knowing it.
-* **The walk by hand.** Print a 5×5 board, colour it, and walk with blue on the left.
+* **The walk by hand.** Print a 5×5 board, colour it, and walk with blue on the right.
   Where does the walk end, and why can it not end in the middle of the board?
 * **Why hexagons?** On a square grid where squares touch only along edges, a draw is
   possible. Find one. Which property of the hexagonal board does the proof use?

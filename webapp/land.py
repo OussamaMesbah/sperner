@@ -8,7 +8,8 @@ import pandas as pd
 import streamlit as st
 
 from sperner import Session
-from webapp.common import COLORS, footer, kept, svg, valley_svg
+from webapp.common import COLORS, footer, kept, svg, valley_steps_svg, valley_svg
+from webapp.figure import figure
 from webapp.territory import (
     LENGTH,
     NATIONS,
@@ -184,26 +185,28 @@ if mode == "Watch the nations negotiate":
         f"of borders that are almost the same get {n} different answers, and the borders "
         "in between are the treaty."
     )
-    step = st.slider(
-        "Question", 1, len(treaty.proposals), 1, key=f"proposal-{hash(treaty.proposals)}"
-    )
-    proposal = treaty.proposals[step - 1]
-    speaker = people[proposal.nation]
-    picked, picked_tint = [None] * n, [None] * n
-    picked[proposal.territory] = speaker.name
-    picked_tint[proposal.territory] = colours[proposal.nation]
-    show_map(
-        proposal.borders,
-        picked,
-        picked_tint,
-        f"question {step}",
-        f"Question {step}: borders at "
-        + ", ".join(f"{b:.1f}" for b in proposal.borders)
-        + f" km; {speaker.name} would take the {labels[proposal.territory]} territory.",
-    )
-    st.markdown(
-        f"**{speaker.name}:** “At these borders we would take the "
-        f"{labels[proposal.territory]} territory.”"
+    frames, captions = [], []
+    for number, proposal in enumerate(treaty.proposals, start=1):
+        speaker = people[proposal.nation]
+        picked, picked_tint = [None] * n, [None] * n
+        picked[proposal.territory] = speaker.name
+        picked_tint[proposal.territory] = colours[proposal.nation]
+        frames.append((proposal.borders, picked, picked_tint))
+        where = ", ".join(f"{b:.1f}" for b in proposal.borders)
+        captions.append(
+            f"Question {number}, borders at {where} km. {speaker.name}: “At these borders we "
+            f"would take the {labels[proposal.territory]} territory.”"
+        )
+    figure(
+        valley_steps_svg(PLACES, LENGTH, frames),
+        key=f"negotiation-{hash(treaty.proposals)}",
+        description=f"The negotiation in {len(frames)} questions: each shows a set of "
+        "borders and the territory one nation would take.",
+        steps=len(frames) - 1,
+        captions=captions,
+        start=0,
+        hint="Press ▶ to watch the negotiation, or step through the questions.",
+        interval=700,
     )
     st.caption(
         "Early questions come from a coarse grid of borders; the method then zooms in "

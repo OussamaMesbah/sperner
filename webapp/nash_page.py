@@ -7,7 +7,8 @@ import streamlit as st
 
 from sperner.nash import equilibrium, nash_map, symmetric_equilibrium
 from sperner.walk import cells
-from webapp.common import COLORS, footer, svg, triangle_svg
+from webapp.common import COLORS, footer, triangle_svg
+from webapp.figure import figure
 
 st.title("Nash equilibria")
 st.info(
@@ -91,7 +92,33 @@ for a in range(size + 1):
 longest = max(max(abs(y[i] - x[i]) for i in range(3)) for x, y in moves)
 scale = 0.8 / (size * longest) if longest else 0.0
 arrows = [(x, tuple(x[i] + scale * (y[i] - x[i]) for i in range(3))) for x, y in moves]
-svg(
+# Where Nash's nudge takes a strategy the reader picks, round after round.
+starts = st.session_state.setdefault("nash_starts", {})
+start = starts.get(bonus)
+trajectory = []
+if start is not None:
+    trajectory = [tuple(start)]
+    for _ in range(40):
+        trajectory.append(tuple(g(list(trajectory[-1]))))
+captions = [
+    f"Round {i}: rock {x[0]:.0%}, paper {x[1]:.0%}, scissors {x[2]:.0%}."
+    for i, x in enumerate(trajectory)
+]
+# Starting at the equilibrium itself, the nudge has nothing to do.
+moves = (
+    trajectory
+    and max(max(abs(a - b) for a, b in zip(x, game.strategy, strict=True)) for x in trajectory)
+    > 1e-6
+)
+if captions and moves:
+    captions[-1] += (
+        " Nudging again and again circles around the equilibrium instead of settling on "
+        "it: a fixed point need not attract. That is why the proof needs Brouwer's theorem, "
+        "and the computation a walk."
+    )
+elif captions:
+    captions[-1] += " This start is the equilibrium itself: the nudge leaves it where it is."
+clicked = figure(
     triangle_svg(
         size,
         cells(3, size),
@@ -99,10 +126,24 @@ svg(
         arrows=arrows,
         star=game.strategy,
         corner_names=("rock", "paper", "scissors"),
+        paths=[trajectory] if trajectory else (),
+        path_steps=True,
+        targets=True,
     ),
-    "The triangle of mixed strategies of rock, paper, scissors, with arrows for Nash's "
-    "map turning around the equilibrium, which is marked with a star.",
+    key=f"nash-{bonus}-{start}",
+    description="The triangle of mixed strategies of rock, paper, scissors, with arrows for "
+    "Nash's map turning around the equilibrium, which is marked with a star.",
+    steps=max(len(trajectory) - 1, 0),
+    captions=captions,
+    start=0,
+    hint="Click a grey dot to start there, then press ▶ to follow Nash's nudge.",
+    interval=250,
+    autoplay=bool(trajectory),
 )
+if clicked:
+    a, b, c = (int(v) for v in clicked.split(","))
+    starts[bonus] = (a / size, b / size, c / size)
+    st.rerun()
 shares = ", ".join(
     f"{name} {share:.1%}"
     for name, share in zip(("rock", "paper", "scissors"), game.strategy, strict=True)

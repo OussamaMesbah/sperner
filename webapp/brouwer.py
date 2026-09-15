@@ -9,6 +9,7 @@ import streamlit as st
 from sperner.brouwer import fixed_point
 from sperner.walk import cells
 from webapp.common import COLORS, footer, svg, triangle_svg
+from webapp.figure import figure
 
 CITIES = ("Aachen", "Bamberg", "Coburg")
 
@@ -132,17 +133,34 @@ st.markdown(
 
 st.subheader("Zoom in")
 result = fixed_point(f, 3, tolerance=1e-9)
-shown = [cell for size_, cell in result.cells if size_ <= 3 * size**2][:4]
-svg(
+rounds = [(size_, cell) for size_, cell in result.cells if size_ <= 3 * size**2][:4]
+captions = [
+    f"Round {number}: the walk finds a three-coloured cell of the grid with {size_} cuts "
+    "per side (purple)."
+    for number, (size_, _) in enumerate(rounds, start=1)
+]
+captions.append(
+    f"After {len(result.cells)} rounds the cell is a billionth wide; its centre, the star, "
+    "is the fixed point."
+)
+figure(
     triangle_svg(
         size,
         cells(3, size),
         {},
-        outlined=shown,
+        outlined=[cell for _, cell in rounds],
+        outline_steps=True,
         star=result.point,
+        star_from=len(rounds),
     ),
-    "The first rounds of the zoom, outlined in purple, closing in on the fixed point, "
-    "marked with a star at " + ", ".join(f"{v:.3f}" for v in result.point) + ".",
+    key=f"zoom-{name}-{parameter}-{size}",
+    description="The first rounds of the zoom, outlined in purple, closing in on the fixed "
+    "point, marked with a star at " + ", ".join(f"{v:.3f}" for v in result.point) + ".",
+    steps=len(rounds),
+    captions=captions,
+    start=0,
+    hint="Press ▶ to watch the walk zoom in, round by round.",
+    interval=900,
 )
 left, middle, right = st.columns(3)
 left.metric("Fixed point", ", ".join(f"{v:.4f}" for v in result.point))
