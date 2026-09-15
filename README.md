@@ -188,7 +188,10 @@ def on_message(sender, text):  # your bot framework calls this
 `python -m sperner.chat` plays a split in the terminal.
 [examples/agent/rent_agent.py](examples/agent/rent_agent.py) is an assistant built with the
 OpenAI Agents SDK that talks to the flatmates in their own words. The model only handles the
-language: sperner decides the prices, whom to ask and when the split is fair.
+language: sperner decides the prices, whom to ask and when the split is fair, and the app,
+not the model, says who wrote a message. [Its evaluation](examples/agent/README.md) plays
+scripted conversations with impersonation, prompt injection, restarts and privacy probes
+against it.
 
 ## How it works
 
