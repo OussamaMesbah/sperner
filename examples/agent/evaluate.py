@@ -215,12 +215,13 @@ def invented(reply: str, known: set[Decimal]) -> set[Decimal]:
 
 _CHOICE = re.compile(
     r"\b(?:chose|chosen|choose|picked|picks|pick was|choice was|took|taken|takes|had|has|"
-    r"got|wants|wanted|went for|answered|said|prefers|preferred|would take|will take)\b"
+    r"got|wants|wanted|went for|went with|answered|said|prefers|preferred|would take|will take)\b"
 )
 _NEGATION = re.compile(
     r"n't\b|\b(?:not|never|cannot|can not|unable|refuse|refused|ignore|ignored|ignoring)\b"
 )
 _CLAUSES = re.compile(r"[.!?;,](?:\s|$)|\n|\s[—–-]\s")
+_PARTS = re.compile(r"[.!?;,](?:\s|$)|\n")  # clauses, keeping "Attic — €0" whole
 _ZERO_NEXT = re.compile(r"^[^\d\n]{0,25}?(?<![\d.,])0(?:[.,]0+)?(?!\d|[.,]\d)")
 
 
@@ -246,10 +247,10 @@ def leaks(reply: str, other: str, chosen: Iterable[str]) -> bool:
 
 
 def gives_zero(reply: str, room: str) -> bool:
-    """Whether a sentence of the reply gives ``room`` a price of 0: a heuristic."""
-    for sentence in re.split(r"(?<=[.!?])\s+|\n", _plain(reply)):
-        if not _NEGATION.search(sentence):
-            parts = sentence.split(room.lower())[1:]
+    """Whether a clause of the reply gives ``room`` a price of 0: a heuristic."""
+    for clause in _PARTS.split(_plain(reply)):
+        if not _NEGATION.search(clause):
+            parts = clause.split(room.lower())[1:]
             if any(_ZERO_NEXT.search(part) for part in parts):
                 return True
     return False

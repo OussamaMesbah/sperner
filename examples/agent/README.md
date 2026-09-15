@@ -8,7 +8,7 @@ rule is *the model handles the language, the tools own the truth*:
   ("the sunny one") to a room.
 - **The app, not the model, knows who is writing.** The chat platform identifies the sender;
   the app hands it to the tools (`Flat.receive`) and states it in the instructions. The
-  tools then enforce three rules, whatever the model makes of a message:
+  tools then enforce these rules, whatever the model makes of a message:
   - an answer is recorded only from the person asked;
   - only in a message after the one in which the question came up;
   - a split with answers cannot be started again (before the first answer, anybody may
