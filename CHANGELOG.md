@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 (2026-09-15)
+
+The live site works again after deploys. The library is unchanged.
 
 ### Fixed
 

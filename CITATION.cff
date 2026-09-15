@@ -6,7 +6,7 @@ authors:
   - family-names: Mesbah
     given-names: Oussama
 repository-code: "https://github.com/OussamaMesbah/sperner"
-version: 0.4.1
+version: 0.4.2
 date-released: 2026-09-15
 license: MIT
 keywords:
