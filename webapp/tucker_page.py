@@ -162,6 +162,7 @@ clicked = figure(
     description=f"A temperature map of a made-up planet; two opposite places are marked, "
     f"at {describe(pair.point)} and {describe(other)}.",
     hint="Click any place to compare its weather with the weather at the opposite place.",
+    keyboard=False,
 )
 if clicked:
     lat, lon = (math.radians(float(v)) for v in clicked.split(","))
@@ -172,15 +173,23 @@ st.success(
     f"**{describe(pair.point)}**: {t1:.1f} °C, {p1:.1f} hPa. "
     f"**{describe(other)}**: {t2:.1f} °C, {p2:.1f} hPa."
 )
+with st.expander("Or choose a place by its coordinates"):
+    chosen_lat = st.slider("Latitude (°)", -90.0, 90.0, 20.0, step=0.5, key=f"lat-{seed}")
+    chosen_lon = st.slider("Longitude (°)", -180.0, 180.0, 0.0, step=0.5, key=f"lon-{seed}")
+    if st.button("Compare with the opposite place", key=f"compare-{seed}"):
+        lat, lon = math.radians(chosen_lat), math.radians(chosen_lon)
+        picks[seed] = (math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat))
+        st.rerun()
 if picked is not None:
     opposite = tuple(-v for v in picked)
     (ta, pa), (tb, pb) = f(picked), f(opposite)
     st.info(
         f"**A**, {describe(picked)}: {ta:.1f} °C, {pa:.1f} hPa. **−A**, "
         f"{describe(opposite)}: {tb:.1f} °C, {pb:.1f} hPa. Differences: {ta - tb:+.1f} °C "
-        f"and {pa - pb:+.1f} hPa. Going from A to −A swaps the two places and flips both "
-        "signs, so somewhere on the way both differences are zero at once — at the yellow "
-        "places."
+        f"and {pa - pb:+.1f} hPa. On any way from A to −A both differences change sign, so "
+        "each of them is zero somewhere along it — but not necessarily at the same place. "
+        "Borsuk–Ulam, which uses the whole sphere, gives a place where both are zero at "
+        "once: the yellow places."
     )
 st.caption(
     "Colours show the temperature, from blue (cold) to red (hot). The two yellow "

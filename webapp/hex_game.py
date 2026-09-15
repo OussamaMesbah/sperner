@@ -97,19 +97,19 @@ st.markdown(
 Put a frame around the board: blue hexagons along the west and east, red ones along the
 north and south. Start at the north-west corner, on the edge between the blue frame and
 the red frame, and walk along the edges of the hexagons, **always with blue on your
-left and red on your right**.
+right and red on your left**.
 
 Every corner of a hexagon is shared by three hexagons. When you reach a corner, two of
 them are the ones on your left and right; the third, straight ahead, decides the way:
-if it is blue, you turn right; if it is red, you turn left. Either way you keep blue on
-the left and red on the right.
+if it is blue, you turn left; if it is red, you turn right. Either way you keep blue on
+the right and red on the left.
 
 You cannot come back to an edge you have walked, because the colours on either side
 fix the direction in which it is walked, and the edge before it is fixed the same way.
 The board is finite, so the walk must end — and it can only end where the frame
 leaves no edge to continue on: at another corner of the frame. The blue hexagons on
-your left then form one connected chain, from the west frame to wherever you stopped,
-and so do the red ones on your right. Ending at the north-east corner means blue has
+your right then form one connected chain, from the west frame to wherever you stopped,
+and so do the red ones on your left. Ending at the north-east corner means blue has
 reached the east; ending at the south-west corner means red has reached the south.
 """
 )
@@ -223,7 +223,7 @@ with st.expander("For teachers"):
 * **First player wins.** Show that on a full board a draw is impossible, then use
   strategy stealing to show that the first player has a winning strategy — without
   knowing it.
-* **The walk by hand.** Print a 5×5 board, colour it, and walk with blue on the left.
+* **The walk by hand.** Print a 5×5 board, colour it, and walk with blue on the right.
   Where does the walk end, and why can it not end in the middle of the board?
 * **Why hexagons?** On a square grid where squares touch only along edges, a draw is
   possible. Find one. Which property of the hexagonal board does the proof use?

@@ -104,12 +104,20 @@ captions = [
     f"Round {i}: rock {x[0]:.0%}, paper {x[1]:.0%}, scissors {x[2]:.0%}."
     for i, x in enumerate(trajectory)
 ]
-if captions:
+# Starting at the equilibrium itself, the nudge has nothing to do.
+moves = (
+    trajectory
+    and max(max(abs(a - b) for a, b in zip(x, game.strategy, strict=True)) for x in trajectory)
+    > 1e-6
+)
+if captions and moves:
     captions[-1] += (
         " Nudging again and again circles around the equilibrium instead of settling on "
         "it: a fixed point need not attract. That is why the proof needs Brouwer's theorem, "
         "and the computation a walk."
     )
+elif captions:
+    captions[-1] += " This start is the equilibrium itself: the nudge leaves it where it is."
 clicked = figure(
     triangle_svg(
         size,

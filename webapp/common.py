@@ -103,6 +103,15 @@ def triangle_svg(
             f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#444" '
             'stroke-width="1.6" marker-end="url(#head)"/>'
         )
+    if targets:
+        for a in range(size + 1):
+            for b in range(size + 1 - a):
+                x, y = position((a, b, size - a - b))
+                parts.append(
+                    f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius:.1f}" fill="#9aa5b1" '
+                    f'fill-opacity="0.55" data-click="{a},{b},{size - a - b}" '
+                    f'aria-label="start at {a}, {b}, {size - a - b}"/>'
+                )
     for line in paths:
         if path_steps:
             for step, (a, b) in enumerate(pairwise(line), start=1):
@@ -124,14 +133,6 @@ def triangle_svg(
             f'<polyline points="{points}" fill="none" stroke="#111" stroke-width="2.5" '
             'stroke-linejoin="round" stroke-linecap="round"/>'
         )
-    if targets:
-        for a in range(size + 1):
-            for b in range(size + 1 - a):
-                x, y = position((a, b, size - a - b))
-                parts.append(
-                    f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius:.1f}" fill="#9aa5b1" '
-                    f'fill-opacity="0.55" data-click="{a},{b},{size - a - b}"/>'
-                )
     for step, current in enumerate(walk):
         if len(current) == 1:
             x, y = position(current[0])
@@ -151,7 +152,12 @@ def triangle_svg(
             )
     for point, colour in colours.items():
         x, y = position(point)
-        click = f' data-click="{",".join(map(str, point))}"' if clickable else ""
+        click = (
+            f' data-click="{",".join(map(str, point))}" '
+            f'aria-label="point {", ".join(map(str, point))}, {NAMES[colour]}"'
+            if clickable
+            else ""
+        )
         parts.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius * (1.25 if clickable else 1):.1f}" '
             f'fill="{COLORS[colour]}" stroke="white" stroke-width="1.5"{click}/>'
@@ -199,6 +205,33 @@ def _hexagon(cx: float, cy: float, r: float, **attributes: object) -> str:
     return f'<polygon points="{corners}" {extra}/>'
 
 
+_HEX_R = 18.0
+_HEX_W = math.sqrt(3) * _HEX_R
+
+
+def hex_centre(cell: tuple[int, int]) -> tuple[float, float]:
+    """Where the centre of a Hex cell is drawn; rows go down the screen."""
+    i, j = cell
+    return 40 + _HEX_W * (i + j / 2 + 1), 40 + 1.5 * _HEX_R * (j + 1)
+
+
+def hex_edge(
+    left: tuple[int, int], right: tuple[int, int]
+) -> tuple[tuple[float, float], tuple[float, float]]:
+    """The edge shared by two touching cells, from the corner the walk comes from to the
+    corner it goes to. A corner shared by three touching hexagons is the centre of
+    their centres."""
+    d = DIRECTIONS.index((right[0] - left[0], right[1] - left[1]))
+    back = (left[0] + DIRECTIONS[(d - 1) % 6][0], left[1] + DIRECTIONS[(d - 1) % 6][1])
+    ahead = (left[0] + DIRECTIONS[(d + 1) % 6][0], left[1] + DIRECTIONS[(d + 1) % 6][1])
+
+    def corner(*three: tuple[int, int]) -> tuple[float, float]:
+        points = [hex_centre(c) for c in three]
+        return sum(p[0] for p in points) / 3, sum(p[1] for p in points) / 3
+
+    return corner(left, right, back), corner(left, right, ahead)
+
+
 def hex_svg(
     k: int,
     fills: Mapping[tuple[int, int], str],
@@ -220,18 +253,9 @@ def hex_svg(
     ``marks`` writes a short text into cells. With ``clickable`` every board cell can be
     clicked and sends ``"i,j"``.
     """
-    r = 18.0
-    w = math.sqrt(3) * r
+    r, w = _HEX_R, _HEX_W
     last = max(len(walk) - 1, 0)
-
-    def centre(cell: tuple[int, int]) -> tuple[float, float]:
-        i, j = cell
-        return 40 + w * (i + j / 2 + 1), 40 + 1.5 * r * (j + 1)
-
-    def corner(*three: tuple[int, int]) -> tuple[float, float]:
-        """The corner that three touching hexagons share: the centre of their centres."""
-        points = [centre(c) for c in three]
-        return sum(p[0] for p in points) / 3, sum(p[1] for p in points) / 3
+    centre = hex_centre
 
     width = 80 + w * (1.5 * k + 2.5)
     height = 80 + 1.5 * r * (k + 1.4)
@@ -243,7 +267,12 @@ def hex_svg(
         for j in range(-1, k + 1):
             x, y = centre((i, j))
             if 0 <= i < k and 0 <= j < k:
-                click = {"data_click": f"{i},{j}"} if clickable else {}
+                name = {COLORS[0]: "blue", COLORS[2]: "red"}.get(fills.get((i, j), ""), "empty")
+                click = (
+                    {"data_click": f"{i},{j}", "aria_label": f"hexagon {i}, {j}, {name}"}
+                    if clickable
+                    else {}
+                )
                 parts.append(
                     _hexagon(
                         x,
@@ -281,10 +310,7 @@ def hex_svg(
             )
         )
     for step, (left, right) in enumerate(walk):
-        d = DIRECTIONS.index((right[0] - left[0], right[1] - left[1]))
-        back = (left[0] + DIRECTIONS[(d - 1) % 6][0], left[1] + DIRECTIONS[(d - 1) % 6][1])
-        ahead = (left[0] + DIRECTIONS[(d + 1) % 6][0], left[1] + DIRECTIONS[(d + 1) % 6][1])
-        (x1, y1), (x2, y2) = corner(left, right, back), corner(left, right, ahead)
+        (x1, y1), (x2, y2) = hex_edge(left, right)
         parts.append(
             f'<g data-from="{step}" pointer-events="none">'
             f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#111" '

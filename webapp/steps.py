@@ -36,15 +36,20 @@ def describe_step(path, step: int, colours) -> str:
 
 def describe_turns(path) -> list[str]:
     """A caption for every step of a walk along the edges between the colours of a Hex
-    board, given as its pairs ``(left, right)`` of cells."""
+    board, given as its pairs ``(left, right)`` of cells.
+
+    The library's walk keeps H on its left in axial coordinates with rows going up. The
+    site draws rows going down the screen, so there blue is on the walker's right, and a
+    blue hexagon ahead makes it turn left.
+    """
     captions = [
-        "Start at the north-west corner: the blue frame on the left, the red frame on the right."
+        "Start at the north-west corner: the red frame on the left, the blue frame on the right."
     ]
     for step in range(1, len(path)):
         if path[step][0] != path[step - 1][0]:
-            captions.append("The hexagon ahead is blue, so the walk turns right.")
+            captions.append("The hexagon ahead is blue, so the walk turns left.")
         else:
-            captions.append("The hexagon ahead is red, so the walk turns left.")
+            captions.append("The hexagon ahead is red, so the walk turns right.")
     return captions
 
 

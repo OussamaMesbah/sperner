@@ -24,6 +24,9 @@ _CSS = """
 .drawing svg { width: 100%; height: auto; display: block; }
 .drawing [data-click] { cursor: pointer; }
 .drawing [data-click]:hover { filter: brightness(1.18) drop-shadow(0 0 2px #111); }
+.drawing [data-click]:focus {
+  outline: none; filter: drop-shadow(0 0 3px #ff4b4b) drop-shadow(0 0 1px #ff4b4b);
+}
 .controls { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .controls button {
   border: 1px solid #c8cdd3; background: #fff; border-radius: 8px; min-width: 38px;
@@ -39,6 +42,8 @@ _CSS = """
 
 _JS = """
 export default function ({ data, parentElement, setTriggerValue }) {
+  // Streamlit calls this again when the data changes; stop the old figure's timer first.
+  if (parentElement.__stopFigure) parentElement.__stopFigure();
   for (const old of parentElement.querySelectorAll('.figure')) old.remove();
   const figure = document.createElement('div');
   figure.className = 'figure';
@@ -51,9 +56,25 @@ export default function ({ data, parentElement, setTriggerValue }) {
   drawing.innerHTML = data.svg;
   figure.appendChild(drawing);
 
-  for (const part of drawing.querySelectorAll('[data-click]')) {
-    part.addEventListener('click', () => setTriggerValue('click', part.getAttribute('data-click')));
+  const keyboard = data.keyboard !== false;
+  const clickable = drawing.querySelectorAll('[data-click]');
+  for (const part of clickable) {
+    const send = () => setTriggerValue('click', part.getAttribute('data-click'));
+    part.addEventListener('click', send);
+    if (keyboard) {
+      part.setAttribute('tabindex', '0');
+      part.setAttribute('role', 'button');
+      if (!part.getAttribute('aria-label')) {
+        part.setAttribute('aria-label', part.getAttribute('data-click'));
+      }
+      part.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); send(); }
+      });
+    }
   }
+  // A drawing with buttons in it is not a single image to screen readers.
+  const root = drawing.querySelector('svg');
+  if (root && keyboard && clickable.length) root.removeAttribute('role');
   if (data.hint) {
     const hint = document.createElement('div');
     hint.className = 'hint';
@@ -64,6 +85,7 @@ export default function ({ data, parentElement, setTriggerValue }) {
   const steps = data.steps || 0;
   const caption = document.createElement('div');
   caption.className = 'caption';
+  caption.setAttribute('aria-live', 'polite');
   let timer = null;
   let step = Math.min(Math.max(data.start ?? steps, 0), steps);
   const timed = Array.from(drawing.querySelectorAll('[data-from], [data-at]'));
@@ -106,7 +128,7 @@ export default function ({ data, parentElement, setTriggerValue }) {
 
   if (steps > 0) {
     button('⏮', 'First step', () => go(0));
-    button('◀', 'Step back', () => go(step - 1));
+    button('◂', 'Step back', () => go(step - 1));
     play.className = 'play';
     play.addEventListener('click', () => {
       if (timer) { stop(); return; }
@@ -117,7 +139,7 @@ export default function ({ data, parentElement, setTriggerValue }) {
       timer = setInterval(tick, data.interval || 350);
     });
     controls.appendChild(play);
-    button('▶', 'Step forward', () => go(step + 1));
+    button('▸', 'Step forward', () => go(step + 1));
     button('⏭', 'Last step', () => go(steps));
     slider.type = 'range';
     slider.min = 0;
@@ -133,7 +155,8 @@ export default function ({ data, parentElement, setTriggerValue }) {
   }
   show();
   if (data.autoplay && steps > 0) play.click();
-  return () => { if (timer) clearInterval(timer); };
+  parentElement.__stopFigure = () => { if (timer) clearInterval(timer); timer = null; };
+  return parentElement.__stopFigure;
 }
 """
 
@@ -165,6 +188,7 @@ def figure(
     hint: str = "",
     interval: int = 350,
     autoplay: bool = False,
+    keyboard: bool = True,
 ) -> str | None:
     """Show an interactive SVG drawing; return the ``data-click`` id just clicked, if any.
 
@@ -179,6 +203,9 @@ def figure(
         hint: A line under the drawing, such as what clicking does.
         interval: Milliseconds per step when playing.
         autoplay: Whether to start playing at once.
+        keyboard: Whether the clickable parts can also be reached with the keyboard and
+            are announced as buttons. Turn it off for drawings with very many parts, and
+            offer another way to choose.
     """
     result = _component()(
         key=key,
@@ -191,6 +218,7 @@ def figure(
             "hint": hint,
             "interval": interval,
             "autoplay": autoplay,
+            "keyboard": keyboard,
         },
         on_click_change=lambda: None,
     )
