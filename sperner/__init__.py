@@ -28,7 +28,7 @@ from sperner.rent import (
 )
 from sperner.walk import Cell, SpernerConditionError, Walk, find_fully_labeled_cell
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = [
     "Cell",
