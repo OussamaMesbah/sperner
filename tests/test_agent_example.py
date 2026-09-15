@@ -49,7 +49,8 @@ def test_the_tools_run_a_whole_split():
     while not state["done"]:
         prices = [float(state["prices"][r]) for r in ROOMS]
         room = ROOMS[MODELS[state["ask"]].choose(prices)]
-        state = call(rent_agent.record_answer, flat, person=state["ask"], room=room)
+        flat.speaker = state["ask"]  # the app knows who wrote the message
+        state = call(rent_agent.record_answer, flat, room=room)
     assert state["result"]["rooms"] == {"Ana": "Big", "Ben": "Small"}
     assert call(rent_agent.current_question, flat)["done"]
 
@@ -57,16 +58,25 @@ def test_the_tools_run_a_whole_split():
 def test_answers_from_the_wrong_person_or_for_an_unknown_room_are_errors():
     flat = rent_agent.Flat()
     state = start(flat, precision=None)
-    other = next(name for name in MODELS if name != state["ask"])
-    assert "error" in call(rent_agent.record_answer, flat, person=other, room="Big")
-    assert "error" in call(rent_agent.record_answer, flat, person=state["ask"], room="Attic")
+    flat.speaker = next(name for name in MODELS if name != state["ask"])
+    assert "can answer it" in call(rent_agent.record_answer, flat, room="Big")["error"]
+    flat.speaker = None
+    assert "error" in call(rent_agent.record_answer, flat, room="Big")
+    flat.speaker = state["ask"]
+    assert "error" in call(rent_agent.record_answer, flat, room="Attic")
     assert call(rent_agent.current_question, flat)["questions_answered"] == 0
+
+
+def test_the_writer_comes_from_the_app_not_from_the_model():
+    assert set(rent_agent.record_answer.params_json_schema["properties"]) == {"room"}
+    assert rent_agent.speaker_of("Mia: the balcony room") == "Mia"
+    assert rent_agent.speaker_of("the balcony room, please") is None
 
 
 def test_tools_explain_what_is_wrong():
     flat = rent_agent.Flat()
     assert "error" in call(rent_agent.current_question, flat)
-    assert "error" in call(rent_agent.record_answer, flat, person="Ana", room="Big")
+    assert "error" in call(rent_agent.record_answer, flat, room="Big")
     reply = call(rent_agent.start_split, flat, rooms=["A"], rent=100, people=["x"], precision=None)
     assert "two rooms" in reply["error"]
 

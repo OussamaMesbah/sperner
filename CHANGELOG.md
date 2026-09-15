@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `examples/agent/evaluate.py` tests the rent assistant on 36 scripted conversations:
+  simulated flatmates answer in six styles, and some scenarios try impersonation, prompt
+  injection or a privacy probe. It scores answer accuracy, accepted impersonations,
+  followed injections, leaks, invented amounts and model calls per answer, and with
+  `--baseline` compares against the first version of the assistant. A rule-based stand-in
+  model runs it without an API key, in the tests too.
+
+### Changed
+
+- The rent assistant takes the sender of a message from the app, not from the model:
+  `record_answer` no longer has a `person` argument, and records an answer only when the
+  person asked wrote the message.
+
 ## 0.4.2 (2026-09-15)
 
 The live site works again after deploys. The library is unchanged.
