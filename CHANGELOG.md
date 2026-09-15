@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- After the 0.4.1 deploy the live site crashed: Streamlit Cloud had pulled the new pages
+  but kept the old drawing modules in memory. The app now fingerprints its own code on
+  every run and imports the site's modules afresh when the code on disk has changed.
+
 ## 0.4.1 (2026-09-15)
 
 The web app's figures become interactive. The library is unchanged.
