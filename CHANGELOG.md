@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.4.3 (2026-09-15)
+
+The rent assistant gets an evaluation, and takes the sender of a message from the app.
+The library is unchanged.
 
 ### Added
 
