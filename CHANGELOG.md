@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.1 (2026-09-15)
+
+The web app's figures become interactive. The library is unchanged.
+
+### Changed
+
+- Walks play in the browser with play, pause and step controls, a scrubber and a
+  caption per step, instead of being stepped with a slider that reran the page.
+  Clicking changes the figures: recolour points of Sperner's triangle, flip hexagons
+  on the Hex board, start Nash's nudge from any strategy, compare any place of the
+  planet with the opposite one. Clickable parts work with the keyboard, and captions
+  are announced to screen readers.
+- The Hex walk is drawn along the edges between the colours instead of through the
+  middle of the hexagons, and the winning chain is outlined in white.
+
+### Fixed
+
+- The Hex captions and proof text described the board mirrored: on screen the walk
+  keeps blue on its right, and a blue hexagon ahead makes it turn left. Tests now check
+  the captions against the drawing.
+- The Tucker page claimed that both weather differences vanish at the same place on any
+  way from a point to its opposite; only Borsuk–Ulam gives that.
+
 ## 0.4.0 (2026-09-15)
 
 sperner grows from fair division into a toolkit for constructive fixed-point theorems, with
