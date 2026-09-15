@@ -8,9 +8,9 @@ import streamlit as st
 
 from sperner import SpernerConditionError, find_fully_labeled_cell
 from sperner.walk import cells
-from webapp.common import COLORS, footer, svg, triangle_svg
-
-CORNER_NAMES = ("blue", "orange", "red")
+from webapp.common import COLORS, footer, triangle_svg
+from webapp.figure import figure
+from webapp.steps import CORNER_NAMES, describe_step, recolour
 
 
 def grid_points(size: int) -> list[tuple[int, int, int]]:
@@ -76,13 +76,24 @@ broken = st.checkbox(
 
 seed = st.session_state.get("seed", 0)
 colours = colouring(size, seed, obey_the_rule=not broken)
+# Colours the reader has changed by clicking, for this colouring only.
+changes = st.session_state.setdefault("recoloured", {}).setdefault((size, seed, broken), {})
+colours.update(changes)
 found = three_coloured(size, colours)
 count = len(found)
-svg(
-    triangle_svg(size, cells(3, size), colours, marked=found, corner_names=CORNER_NAMES),
-    f"A triangle cut into {size**2} small triangles, its corners coloured blue, orange "
-    f"and red; {count} small triangles have all three colours and are shaded green.",
+clicked = figure(
+    triangle_svg(
+        size, cells(3, size), colours, marked=found, corner_names=CORNER_NAMES, clickable=True
+    ),
+    key=f"colouring-{size}-{seed}-{broken}-{len(changes)}-{hash(frozenset(changes.items()))}",
+    description=f"A triangle cut into {size**2} small triangles, its corners coloured blue, "
+    f"orange and red; {count} small triangles have all three colours and are shaded green.",
+    hint="Click a point to change its colour. The count below follows every change.",
 )
+if clicked:
+    point = tuple(int(v) for v in clicked.split(","))
+    changes[point] = recolour(colours[point], point, obey_the_rule=not broken)
+    st.rerun()
 if broken:
     st.warning(
         f"With rule 2 broken this colouring has **{count}** three-coloured triangles "
@@ -145,24 +156,19 @@ except SpernerConditionError as error:
     )
 else:
     path = walk.path or ()
-    step = st.slider("Step", 1, len(path), len(path), key=f"step-{size}-{seed}")
-    svg(
+    figure(
         triangle_svg(
-            size,
-            cells(3, size),
-            colours,
-            marked=found,
-            visited=path[: step - 1],
-            current=path[step - 1],
-            corner_names=CORNER_NAMES,
+            size, cells(3, size), colours, marked=found, walk=path, corner_names=CORNER_NAMES
         ),
-        f"The walk after {step} of {len(path)} steps: the cells it has passed are grey, "
-        "the current one is outlined in black.",
+        key=f"walk-{size}-{seed}-{broken}-{hash(frozenset(changes.items()))}",
+        description=f"The walk through the triangle in {len(path)} steps: the cells it has "
+        "passed turn grey, the current one is outlined in black.",
+        steps=len(path) - 1,
+        captions=[describe_step(path, i, colours) for i in range(len(path))],
+        start=0,
+        hint="Press ▶ to watch the walk, or step through it.",
+        interval=600,
     )
-    stage = {1: "the blue corner", 2: "an edge on the blue–orange side"}.get(
-        len(path[step - 1]), "a small triangle"
-    )
-    st.caption(f"Step {step} of {len(path)}: {stage}, outlined in black.")
     total = len(grid_points(size))
     st.success(
         f"The walk ended at a three-coloured triangle after {walk.pivots} moves, having "

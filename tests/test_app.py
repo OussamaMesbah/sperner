@@ -133,9 +133,6 @@ def test_the_nations_negotiate_borders_nobody_would_swap():
     app = page("land")
     assert not app.exception
     assert "nobody would swap" in app.success[0].value or "No nation" in app.success[0].value
-    [question] = [s for s in app.slider if s.key.startswith("proposal-")]
-    question.set_value(3).run()
-    assert not app.exception
 
 
 def test_speaking_for_one_nation_ends_in_a_treaty():

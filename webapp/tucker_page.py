@@ -9,6 +9,7 @@ import streamlit as st
 
 from sperner.tucker import antipodal_pair, borsuk_ulam_labels, complementary_edge, triangles
 from webapp.common import COLORS, footer, svg
+from webapp.figure import figure
 
 LABEL_COLOURS = {1: COLORS[0], -1: COLORS[5], 2: COLORS[2], -2: COLORS[1]}
 
@@ -65,7 +66,7 @@ def colour(t: float) -> str:
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
-def world_svg(f, pair) -> str:
+def world_svg(f, pair, picked=None) -> str:
     width, height, columns, rows = 720.0, 360.0, 72, 36
     parts = [
         f'<svg viewBox="0 0 {width:.0f} {height + 20:.0f}" xmlns="http://www.w3.org/2000/svg">',
@@ -79,15 +80,26 @@ def world_svg(f, pair) -> str:
             parts.append(
                 f'<rect x="{column * width / columns:.1f}" y="{row * height / rows:.1f}" '
                 f'width="{width / columns + 0.5:.1f}" height="{height / rows + 0.5:.1f}" '
-                f'fill="{colour(f(p)[0])}"/>'
+                f'fill="{colour(f(p)[0])}" '
+                f'data-click="{math.degrees(lat):.2f},{math.degrees(lon):.2f}"/>'
             )
     for p in (pair.point, tuple(-v for v in pair.point)):
         lat, lon = place(p)
         x, y = (lon + 180) / 360 * width, (90 - lat) / 180 * height
         parts.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="9" fill="#FFD400" stroke="#111" '
-            'stroke-width="2.5"/>'
+            'stroke-width="2.5" pointer-events="none"/>'
         )
+    if picked is not None:
+        for p, name in ((picked, "A"), (tuple(-v for v in picked), "−A")):
+            lat, lon = place(p)
+            x, y = (lon + 180) / 360 * width, (90 - lat) / 180 * height
+            parts.append(
+                f'<g pointer-events="none"><circle cx="{x:.1f}" cy="{y:.1f}" r="11" '
+                'fill="#fff" stroke="#111" stroke-width="2.5"/>'
+                f'<text x="{x:.1f}" y="{y + 4.5:.1f}" text-anchor="middle" font-size="12" '
+                f'font-weight="bold" font-family="sans-serif">{name}</text></g>'
+            )
     parts.append(
         f'<text x="4" y="{height + 15:.0f}" font-size="12" font-family="sans-serif" '
         'fill="#555">180° W</text>'
@@ -142,16 +154,34 @@ seed = st.session_state.get("weather_seed", 0)
 f = weather(seed)
 pair = find_pair(seed)
 other = tuple(-v for v in pair.point)
-svg(
-    world_svg(f, pair),
-    f"A temperature map of a made-up planet; two opposite places are marked, at "
-    f"{describe(pair.point)} and {describe(other)}.",
+picks = st.session_state.setdefault("picked_places", {})
+picked = picks.get(seed)
+clicked = figure(
+    world_svg(f, pair, picked),
+    key=f"world-{seed}-{picked}",
+    description=f"A temperature map of a made-up planet; two opposite places are marked, "
+    f"at {describe(pair.point)} and {describe(other)}.",
+    hint="Click any place to compare its weather with the weather at the opposite place.",
 )
+if clicked:
+    lat, lon = (math.radians(float(v)) for v in clicked.split(","))
+    picks[seed] = (math.cos(lat) * math.cos(lon), math.cos(lat) * math.sin(lon), math.sin(lat))
+    st.rerun()
 (t1, p1), (t2, p2) = f(pair.point), f(other)
 st.success(
     f"**{describe(pair.point)}**: {t1:.1f} °C, {p1:.1f} hPa. "
     f"**{describe(other)}**: {t2:.1f} °C, {p2:.1f} hPa."
 )
+if picked is not None:
+    opposite = tuple(-v for v in picked)
+    (ta, pa), (tb, pb) = f(picked), f(opposite)
+    st.info(
+        f"**A**, {describe(picked)}: {ta:.1f} °C, {pa:.1f} hPa. **−A**, "
+        f"{describe(opposite)}: {tb:.1f} °C, {pb:.1f} hPa. Differences: {ta - tb:+.1f} °C "
+        f"and {pa - pb:+.1f} hPa. Going from A to −A swaps the two places and flips both "
+        "signs, so somewhere on the way both differences are zero at once — at the yellow "
+        "places."
+    )
 st.caption(
     "Colours show the temperature, from blue (cold) to red (hot). The two yellow "
     "places are opposite each other on the planet. The site searches a grid, so the "
