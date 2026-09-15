@@ -2,7 +2,7 @@ import random
 
 from sperner import find_fully_labeled_cell
 from sperner.hex import hex_walk
-from webapp.steps import describe_step, describe_walk, recolour
+from webapp.steps import describe_step, describe_turns, describe_walk, recolour
 
 
 def test_a_click_cycles_through_the_colours_the_rules_allow():
@@ -39,3 +39,10 @@ def test_the_hex_captions_follow_the_turns():
         turned_right = walk.path[step][0] != walk.path[step - 1][0]
         assert ("turns right" in captions[step]) == turned_right
     assert ("blue wins" if walk.winner == "H" else "red wins") in captions[-1]
+
+
+def test_the_turn_captions_need_only_the_pairs_of_a_walk():
+    path = [((-1, 0), (0, -1)), ((0, 0), (0, -1)), ((0, 0), (1, -1))]
+    captions = describe_turns(path)
+    assert len(captions) == 3
+    assert "turns right" in captions[1] and "turns left" in captions[2]

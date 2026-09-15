@@ -34,17 +34,23 @@ def describe_step(path, step: int, colours) -> str:
     return f"A small triangle coloured {', '.join(names)}: leave through its other door."
 
 
-def describe_walk(walk, k: int) -> list[str]:
-    """A caption for every step of the walk along the edges between the colours."""
+def describe_turns(path) -> list[str]:
+    """A caption for every step of a walk along the edges between the colours of a Hex
+    board, given as its pairs ``(left, right)`` of cells."""
     captions = [
         "Start at the north-west corner: the blue frame on the left, the red frame on the right."
     ]
-    for step in range(1, len(walk.path)):
-        left, before = walk.path[step][0], walk.path[step - 1][0]
-        if left != before:
+    for step in range(1, len(path)):
+        if path[step][0] != path[step - 1][0]:
             captions.append("The hexagon ahead is blue, so the walk turns right.")
         else:
             captions.append("The hexagon ahead is red, so the walk turns left.")
+    return captions
+
+
+def describe_walk(walk, k: int) -> list[str]:
+    """Captions for a finished Hex walk: the turns, and who wins at the end."""
+    captions = describe_turns(walk.path)
     who, where = ("Blue", "north-east") if walk.winner == "H" else ("Red", "south-west")
     captions[-1] += (
         f" The walk has reached the {where} corner: {who.lower()} wins. The winning chain "

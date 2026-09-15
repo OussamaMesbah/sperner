@@ -10,7 +10,7 @@ import streamlit as st
 from sperner.hex import gale_fixed_point, gale_walk, hex_walk
 from webapp.common import COLORS, footer, hex_svg
 from webapp.figure import figure
-from webapp.steps import describe_walk
+from webapp.steps import describe_turns, describe_walk
 
 BLUE, RED = COLORS[0], COLORS[2]
 SHADES = {"H+": "#0b5a8f", "H-": "#8cc4ea", "V+": "#b34700", "V-": "#f3b58c"}
@@ -163,9 +163,9 @@ for i in range(size):
 fills = {cell: SHADES[colour] for cell, colour in everything.items()}
 marks = {cell: colour[1].replace("-", "−") for cell, colour in everything.items()}
 gale_steps = max(len(gale.path) - 1, 0)
-gale_captions = [f"Step {i} of the Hex walk on Gale's colouring." for i in range(gale_steps + 1)]
+gale_captions = describe_turns(gale.path) if gale.path else [""]
 if gale.found is not None:
-    gale_captions[-1] = "The next hexagon has no colour: the map moves it by at most ε."
+    gale_captions[-1] += " The next hexagon has no colour: the map moves it by at most ε."
     figure(
         hex_svg(size, fills, walk=gale.path, star=gale.found, marks=marks),
         key=f"gale-{name}-{strength}-{eps}-{size}",
@@ -185,7 +185,7 @@ if gale.found is not None:
     )
 else:
     clash = gale.clash or ()
-    gale_captions[-1] = "The walk got through: two neighbours of the chain clash (white)."
+    gale_captions[-1] += " The walk got through: two neighbours of the chain clash (white)."
     figure(
         hex_svg(size, fills, walk=gale.path, chain=clash, marks=marks),
         key=f"gale-{name}-{strength}-{eps}-{size}",
