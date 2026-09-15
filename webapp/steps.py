@@ -48,6 +48,6 @@ def describe_walk(walk, k: int) -> list[str]:
     who, where = ("Blue", "north-east") if walk.winner == "H" else ("Red", "south-west")
     captions[-1] += (
         f" The walk has reached the {where} corner: {who.lower()} wins. The winning chain "
-        "is outlined in gold."
+        "is outlined in white."
     )
     return captions

@@ -215,10 +215,10 @@ def hex_svg(
     ``fills`` colours board cells (others stay white), and the frame is drawn in the two
     players' colours. ``walk`` is the pairs ``(left, right)`` of a walk along the edges
     between the colours: at step ``i`` (see :mod:`webapp.figure`) the edges of the first
-    ``i + 1`` pairs are drawn and the current pair is outlined. ``chain`` cells get a gold
-    outline and ``star`` marks a cell, both at the last step. ``marks`` writes a short
-    text into cells. With ``clickable`` every board cell can be clicked and sends
-    ``"i,j"``.
+    ``i + 1`` pairs are drawn and the current pair is outlined. ``chain`` cells get a white
+    outline, apart from the yellow walk, and ``star`` marks a cell, both at the last step.
+    ``marks`` writes a short text into cells. With ``clickable`` every board cell can be
+    clicked and sends ``"i,j"``.
     """
     r = 18.0
     w = math.sqrt(3) * r
@@ -274,8 +274,8 @@ def hex_svg(
                 y,
                 r - 3,
                 fill="none",
-                stroke="#FFD400",
-                stroke_width="3",
+                stroke="#ffffff",
+                stroke_width="3.5",
                 data_from=str(last),
                 pointer_events="none",
             )

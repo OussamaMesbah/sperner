@@ -88,7 +88,7 @@ if clicked:
     st.rerun()
 st.success(
     f"**{who} wins.** The walk looked at {walk.looked_at} of the {k * k} hexagons; "
-    f"the {who.lower()} hexagons along it contain the winning chain (outlined in gold)."
+    f"the {who.lower()} hexagons along it contain the winning chain (outlined in white)."
 )
 
 st.subheader("Why somebody wins")
@@ -185,7 +185,7 @@ if gale.found is not None:
     )
 else:
     clash = gale.clash or ()
-    gale_captions[-1] = "The walk got through: two neighbours of the chain clash (gold)."
+    gale_captions[-1] = "The walk got through: two neighbours of the chain clash (white)."
     figure(
         hex_svg(size, fills, walk=gale.path, chain=clash, marks=marks),
         key=f"gale-{name}-{strength}-{eps}-{size}",
