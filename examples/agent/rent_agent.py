@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from dataclasses import dataclass
+import threading
+from dataclasses import dataclass, field
 from typing import Any
 
 from agents import Agent, Model, RunContextWrapper, Runner, SQLiteSession, function_tool
@@ -45,6 +46,9 @@ class Flat:
     asked: tuple[int, int] | None = None
     """For the open question: how many questions were answered before it, and the message
     in which a tool first handed it out."""
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+    """Held while a tool checks and changes the split: the SDK runs tools in threads, and
+    one response of the model can call several at once."""
 
     def receive(self, speaker: str | None) -> None:
         """Note a new message and its writer; the app calls this before the model runs."""
@@ -103,7 +107,13 @@ def start_split(
             flatmate who has not been found yet.
         precision: How precise the prices should be, in money; null for 1% of the rent.
     """
-    flat = ctx.context
+    with ctx.context.lock:
+        return _start(ctx.context, rooms, rent, people, precision)
+
+
+def _start(
+    flat: Flat, rooms: list[str], rent: float, people: list[str], precision: float | None
+) -> str:
     if flat.session is not None and flat.session.questions_answered:
         return _error("A split with answers is under way; it cannot be started again.")
     try:
@@ -117,9 +127,10 @@ def start_split(
 @function_tool
 def current_question(ctx: RunContextWrapper[Flat]) -> str:
     """The question to ask next, or the result once the split is finished."""
-    if ctx.context.session is None:
-        return _error("No split has been started.")
-    return _report(ctx.context)
+    with ctx.context.lock:
+        if ctx.context.session is None:
+            return _error("No split has been started.")
+        return _report(ctx.context)
 
 
 @function_tool
@@ -130,7 +141,11 @@ def record_answer(ctx: RunContextWrapper[Flat], room: str) -> str:
     Args:
         room: The exact name of the room they chose.
     """
-    flat = ctx.context
+    with ctx.context.lock:
+        return _record(ctx.context, room)
+
+
+def _record(flat: Flat, room: str) -> str:
     session = flat.session
     if session is None:
         return _error("No split has been started.")

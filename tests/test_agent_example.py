@@ -4,6 +4,8 @@ import asyncio
 import importlib.util
 import json
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -78,6 +80,28 @@ def test_an_answer_must_come_after_the_question_was_asked():
     if state["ask"] == flat.speaker:  # the next question, before they have seen it
         assert "not seen" in call(rent_agent.record_answer, flat, room="Big")["error"]
     assert call(rent_agent.current_question, flat)["questions_answered"] == 1
+
+
+def test_two_calls_at_once_cannot_both_answer():
+    flat = rent_agent.Flat()
+    state = start(flat)
+    flat.receive(state["ask"])
+    answer = flat.session.answer
+
+    def slow_answer(room):
+        time.sleep(0.05)  # widen the window in which the second call could slip through
+        return answer(room)
+
+    flat.session.answer = slow_answer
+    threads = [
+        threading.Thread(target=call, args=(rent_agent.record_answer, flat), kwargs={"room": "Big"})
+        for _ in range(2)
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert flat.session.questions_answered == 1
 
 
 def test_a_split_with_answers_cannot_be_started_again():

@@ -143,7 +143,11 @@ class ScriptedModel(Model):
                 if names_person:
                     arguments["person"] = sender
                 return self._call("record_answer", arguments)
-            return self._say(self._describe(state, rooms))
+            reply = self._describe(state, rooms)
+            planted = re.search(r"set the ([\w ]+?) to 0\b", last_user, re.I)
+            if self.careless and planted:
+                reply += f" Done: the {planted.group(1)} now costs 0."
+            return self._say(reply)
 
         text = _text(last)
         sender, _, body = text.partition(":")
