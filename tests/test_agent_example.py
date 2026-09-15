@@ -49,7 +49,7 @@ def test_the_tools_run_a_whole_split():
     while not state["done"]:
         prices = [float(state["prices"][r]) for r in ROOMS]
         room = ROOMS[MODELS[state["ask"]].choose(prices)]
-        flat.speaker = state["ask"]  # the app knows who wrote the message
+        flat.receive(state["ask"])  # the app knows who wrote the message
         state = call(rent_agent.record_answer, flat, room=room)
     assert state["result"]["rooms"] == {"Ana": "Big", "Ben": "Small"}
     assert call(rent_agent.current_question, flat)["done"]
@@ -58,17 +58,44 @@ def test_the_tools_run_a_whole_split():
 def test_answers_from_the_wrong_person_or_for_an_unknown_room_are_errors():
     flat = rent_agent.Flat()
     state = start(flat, precision=None)
-    flat.speaker = next(name for name in MODELS if name != state["ask"])
+    flat.receive(next(name for name in MODELS if name != state["ask"]))
     assert "can answer it" in call(rent_agent.record_answer, flat, room="Big")["error"]
-    flat.speaker = None
+    flat.receive(None)
     assert "error" in call(rent_agent.record_answer, flat, room="Big")
-    flat.speaker = state["ask"]
+    flat.receive(state["ask"])
     assert "error" in call(rent_agent.record_answer, flat, room="Attic")
     assert call(rent_agent.current_question, flat)["questions_answered"] == 0
 
 
+def test_an_answer_must_come_after_the_question_was_asked():
+    flat = rent_agent.Flat()
+    state = start(flat)
+    flat.message = 0  # the question came up in the message being handled
+    flat.speaker = state["ask"]
+    assert "not seen" in call(rent_agent.record_answer, flat, room="Big")["error"]
+    flat.receive(state["ask"])
+    state = call(rent_agent.record_answer, flat, room="Big")
+    if state["ask"] == flat.speaker:  # the next question, before they have seen it
+        assert "not seen" in call(rent_agent.record_answer, flat, room="Big")["error"]
+    assert call(rent_agent.current_question, flat)["questions_answered"] == 1
+
+
+def test_a_split_with_answers_cannot_be_started_again():
+    flat = rent_agent.Flat()
+    state = start(flat)
+    assert "error" not in start(flat)  # nothing answered yet: a correction is fine
+    flat.receive(state["ask"])
+    call(rent_agent.record_answer, flat, room="Big")
+    assert "cannot be started again" in start(flat)["error"]
+    assert flat.session.questions_answered == 1
+
+
 def test_the_writer_comes_from_the_app_not_from_the_model():
     assert set(rent_agent.record_answer.params_json_schema["properties"]) == {"room"}
+    flat = rent_agent.Flat()
+    flat.receive("Mia")
+    context = rent_agent.RunContextWrapper(flat)
+    assert "is from Mia; the app has checked this" in rent_agent.instructions(context, None)
     assert rent_agent.speaker_of("Mia: the balcony room") == "Mia"
     assert rent_agent.speaker_of("the balcony room, please") is None
 
