@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `docs/AGENT_DESIGN.md`, a one-page design note on the rent assistant: what the model,
+  the app and the tools each decide, the trust boundary, and how the evaluation reads.
+
 ## 0.4.3 (2026-09-15)
 
 The rent assistant gets an evaluation, and takes the sender of a message from the app.

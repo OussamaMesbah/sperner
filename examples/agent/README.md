@@ -1,5 +1,8 @@
 # A rent assistant built with the OpenAI Agents SDK
 
+The design and its trust boundary are summed up in a
+[one-page design note](../../docs/AGENT_DESIGN.md).
+
 [`rent_agent.py`](rent_agent.py) lets flatmates split their rent by chatting. The design
 rule is *the model handles the language, the tools own the truth*:
 
