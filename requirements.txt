@@ -22,7 +22,7 @@ h11==0.16.0
     # via uvicorn
 httptools==0.8.0
     # via streamlit
-idna==3.19
+idna==3.20
     # via
     #   anyio
     #   requests
@@ -53,7 +53,7 @@ pandas==3.0.5
     # via streamlit
 pillow==12.3.0
     # via streamlit
-protobuf==7.36.1
+protobuf==7.36.2
     # via streamlit
 pyarrow==25.0.1
     # via streamlit
@@ -75,9 +75,9 @@ rpds-py==2026.6.3
     #   referencing
 six==1.17.0
     # via python-dateutil
-starlette==1.6.0
+starlette==1.7.0
     # via streamlit
-streamlit==1.63.0
+streamlit==1.64.0
     # via sperner (pyproject.toml)
 toml==0.10.2
     # via streamlit
@@ -88,9 +88,9 @@ typing-extensions==4.16.0
     #   referencing
     #   starlette
     #   streamlit
-urllib3==2.7.0
+urllib3==2.8.0
     # via requests
-uvicorn==0.52.4
+uvicorn==0.54.0
     # via streamlit
 websockets==16.1.1
     # via streamlit
